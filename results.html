@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Coach — Results</title>
+    <link rel="icon" type="image/png" href="browserLogo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app">
+
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-top">
+                <div class="header-brand">
+                    <div class="header-logo">IC</div>
+                    <div>
+                        <div class="header-title">Interview<span>Coach</span></div>
+                        <div class="header-subtitle">AI-powered interview preparation</div>
+                    </div>
+                </div>
+                <a href="home.html" class="btn btn-outline" style="padding: 6px 16px; font-size: 0.8rem; min-height: auto;">← Home</a>
+            </div>
+        </header>
+
+        <!-- RESULTS -->
+        <section class="section" id="resultsSection">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-md); margin-bottom: var(--space-lg);">
+                <div class="section-label" style="margin-bottom: 0;">Interview Summary</div>
+            </div>
+            <div id="questionsContainer" class="questions-container"></div>
+
+            <div id="feedbackSection" style="display: none; margin-top: var(--space-lg); padding-top: var(--space-lg); border-top: var(--border-width) solid var(--border);">
+                <div class="section-label">AI Feedback</div>
+                <div id="feedbackContent" class="feedback-content"></div>
+            </div>
+
+            <div style="margin-top: var(--space-md); display: flex; gap: var(--space-sm); flex-wrap: wrap;">
+              <button id="getFeedbackBtn" class="btn btn-accent">Get Feedback</button>
+              <button id="exportPdfBtn" class="btn btn-success" style="display: none;">Export as PDF</button>
+              <a href="index.html" class="btn btn-outline">Home</a>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script src="script.js"></script>
+</body>
+</html>
