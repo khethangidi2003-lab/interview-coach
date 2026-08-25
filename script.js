@@ -27,22 +27,33 @@ const _debugMode = false;
 
 // ✅ API Key is loaded from environment variables
 // - On Vercel: Uses process.env.GROQ_API_KEY
-// - Locally: Uses .env file via Vercel CLI or fallback
+// - Locally: Uses fallback (replace with your key for testing)
 
 function getSessionToken() {
-    // Try environment variable first (Vercel)
+    // Priority 1: Vercel environment variable (Production + Preview)
     if (typeof process !== 'undefined' && process.env && process.env.GROQ_API_KEY) {
+        console.log('✅ API key loaded from Vercel environment');
         return process.env.GROQ_API_KEY;
     }
     
-    // Fallback: try window._env_ for runtime injection (optional)
+    // Priority 2: Runtime injection (for custom deployments)
     if (typeof window !== 'undefined' && window._env_ && window._env_.GROQ_API_KEY) {
+        console.log('✅ API key loaded from runtime config');
         return window._env_.GROQ_API_KEY;
     }
     
-    // Local development fallback (DO NOT COMMIT REAL KEY)
-    console.warn('⚠️ No API key found in environment variables');
-    console.warn('💡 Set GROQ_API_KEY in your environment');
+    // Priority 3: Local development fallback
+    // ⚠️ Replace with your actual key for local testing
+    // ⚠️ This should NOT be committed to GitHub
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        console.warn('⚠️ Local development mode - using fallback key');
+        // 🔥 IMPORTANT: Replace this with your key for local testing
+        // DO NOT commit this to GitHub!
+        return 'gsk_your_local_testing_key_here';
+    }
+    
+    console.error('❌ API key not found. Please check your environment variables.');
+    console.error('💡 Set GROQ_API_KEY in Vercel Environment Variables');
     return '';
 }
 
@@ -479,12 +490,22 @@ async function startInterview() {
     if (interviewState.questions.length === 0) {
         if (!loadInterviewData()) {
             alert('No questions found. Please generate questions first.');
-            window.location.href = 'index.html';
+            window.location.href = 'home.html';
             return;
         }
     }
     
     console.log(`✅ ${interviewState.questions.length} questions found`);
+    
+    // 🔥 Hide preparation message, show interview elements
+    const prepMessage = document.getElementById('preparationMessage');
+    if (prepMessage) prepMessage.style.display = 'none';
+    
+    const currentQuestionEl = document.getElementById('currentQuestion');
+    if (currentQuestionEl) currentQuestionEl.style.display = 'block';
+    
+    const controlsGroup = document.getElementById('controlsGroup');
+    if (controlsGroup) controlsGroup.style.display = 'flex';
     
     try {
         console.log('📷 Starting camera...');
@@ -512,7 +533,6 @@ async function startInterview() {
     interviewState.isInterviewActive = true;
     console.log('✅ Interview state reset with focusData initialized');
     
-    if (startInterviewBtn) startInterviewBtn.style.display = 'none';
     if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
     if (stopListeningBtn) stopListeningBtn.style.display = 'none';
     if (nextQuestionBtn) {
@@ -1041,7 +1061,7 @@ function displayFeedback(feedback) {
 
 async function exportToPDF() {
     if (exportPdfBtn) {
-        exportPdfBtn.textContent = '⏳ Generating PDF...';
+        exportPdfBtn.textContent = 'Generating PDF...';
         exportPdfBtn.disabled = true;
     }
     
@@ -1100,7 +1120,7 @@ async function exportToPDF() {
                         const items = content.querySelectorAll('li');
                         let listHTML = '<ul style="padding-left: 20px; margin: 4px 0;">';
                         items.forEach(item => {
-                            listHTML += `<li style="margin-bottom: 2px;">${item.textContent}</li>`;
+                            listHTML += `<li style="margin-bottom: 2px;">${item.textContent}</li>`;  
                         });
                         listHTML += '</ul>';
                         contentText = listHTML;
@@ -1164,7 +1184,7 @@ async function exportToPDF() {
         alert('Failed to generate PDF. Error: ' + error.message);
     } finally {
         if (exportPdfBtn) {
-            exportPdfBtn.textContent = '📄 Export as PDF';
+            exportPdfBtn.textContent = 'Export as PDF';
             exportPdfBtn.disabled = false;
         }
     }
@@ -1191,24 +1211,24 @@ function setStatus(message, type) {
 document.addEventListener('DOMContentLoaded', function() {
     const page = getCurrentPage();
     
-switch(page) {
-    case 'index':
-        console.log('🏠 Landing page initialized');
-        // Landing page logic — nothing needed
-        break;
-        
-    case 'home':
-        console.log('📋 App page initialized');
-        if (generateBtn) {
-            generateBtn.addEventListener('click', generateQuestions);
-        }
-        if (goToInterviewBtn) {
-            goToInterviewBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                window.location.href = 'interview.html';
-            });
-        }
-        break;
+    switch(page) {
+        case 'index':
+            console.log('Landing page initialized');
+            // Landing page logic — nothing needed
+            break;
+            
+        case 'home':
+            console.log('App page initialized');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', generateQuestions);
+            }
+            if (goToInterviewBtn) {
+                goToInterviewBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.location.href = 'interview.html';
+                });
+            }
+            break;
             
         case 'interview':
             console.log('🎤 Interview page initialized');
@@ -1216,13 +1236,13 @@ switch(page) {
             // Load questions from session storage
             if (!loadInterviewData()) {
                 alert('No questions found. Please generate questions first.');
-                window.location.href = 'index.html';
+                window.location.href = 'home.html';
                 return;
             }
             
             // Show initial state
             if (currentQuestion) {
-                currentQuestion.textContent = 'Ready for your interview? Click "Start Interview" to begin. ';
+                currentQuestion.textContent = 'Ready for your interview. Click "Start Interview" to begin.';
             }
             if (questionCounter) {
                 questionCounter.textContent = 'Ready to start';
@@ -1264,12 +1284,12 @@ switch(page) {
             break;
             
         case 'results':
-            console.log('📊 Results page initialized');
+            console.log('Results page initialized');
             
             // Load results data
             if (!loadResultsData()) {
                 alert('No interview data found. Please complete an interview first.');
-                window.location.href = 'index.html';
+                window.location.href = 'home.html';
                 return;
             }
             
@@ -1348,13 +1368,14 @@ document.addEventListener('keydown', function(event) {
         }
     }
     
-    if (page === 'index' && jobDescriptionInput) {
+    if (page === 'home' && jobDescriptionInput) {
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
             event.preventDefault();
             if (generateBtn) generateBtn.click();
         }
     }
 });
+
 // ============================================
 // FALLBACK: Direct click handler for Start Interview
 // ============================================
@@ -1372,11 +1393,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 300);
 });
+
 // ============================================
 // INITIALIZATION
 // ============================================
 
-console.log('🎯 Interview Coach - Multi-Page Ready!');
-console.log(`📄 Current page: ${getCurrentPage()}`);
-console.log('💡 API key is loaded from configuration.');
-console.log('📊 Camera focus tracking is integrated into feedback.');
+console.log('Interview Coach - Multi-Page Ready!');
+console.log(`Current page: ${getCurrentPage()}`);
+console.log('API key is loaded from configuration.');
+console.log('Camera focus tracking is integrated into feedback.');
