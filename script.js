@@ -15,7 +15,7 @@ let interviewState = {
 };
 
 // ============================================
-// APP CONFIGURATION (Hidden API Key)
+// APP CONFIGURATION (API Key from Environment)
 // ============================================
 
 const _appVersion = '2.1.0';
@@ -25,15 +25,25 @@ const _language = 'en';
 const _timezone = 'UTC';
 const _debugMode = false;
 
-const _sessionToken = 'Z3NrX1FTMFZWc2ZkV3ZsNjdVcUFjWUFxV0dkeWIzRllRU1ZNWDNZWXNNN0Vlc1FVQVZuR2xabDc=';
+// ✅ API Key is loaded from environment variables
+// - On Vercel: Uses process.env.GROQ_API_KEY
+// - Locally: Uses .env file via Vercel CLI or fallback
 
 function getSessionToken() {
-    try {
-        return atob(_sessionToken);
-    } catch (e) {
-        console.warn('Session token decode failed');
-        return '';
+    // Try environment variable first (Vercel)
+    if (typeof process !== 'undefined' && process.env && process.env.GROQ_API_KEY) {
+        return process.env.GROQ_API_KEY;
     }
+    
+    // Fallback: try window._env_ for runtime injection (optional)
+    if (typeof window !== 'undefined' && window._env_ && window._env_.GROQ_API_KEY) {
+        return window._env_.GROQ_API_KEY;
+    }
+    
+    // Local development fallback (DO NOT COMMIT REAL KEY)
+    console.warn('⚠️ No API key found in environment variables');
+    console.warn('💡 Set GROQ_API_KEY in your environment');
+    return '';
 }
 
 // ============================================

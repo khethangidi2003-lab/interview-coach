@@ -23,12 +23,6 @@ Interview Coach is an interactive web application that helps candidates practice
 | jsPDF + html2canvas | PDF export |
 | Web Speech API | Speech-to-text & text-to-speech |
 
-## 🚀 Getting Started
-
-1. Clone the repository
-2. Open `index.html` in your browser (or use VS Code Live Server)
-3. Your Groq API key is already configured
-4. Paste a job description and start practicing
 
 ## 👨‍💻 Creator
 
