@@ -15,45 +15,26 @@ let interviewState = {
 };
 
 // ============================================
-// APP CONFIGURATION (API Key from Environment)
+// APP CONFIGURATION (API Key from Vercel)
 // ============================================
 
-const _appVersion = '2.1.0';
-const _buildNumber = '2024.08.18';
-const _theme = 'light';
-const _language = 'en';
-const _timezone = 'UTC';
-const _debugMode = false;
-
-// ✅ API Key is loaded from environment variables
-// - On Vercel: Uses process.env.GROQ_API_KEY
-// - Locally: Uses fallback (replace with your key for testing)
-
 function getSessionToken() {
-    // Priority 1: Vercel environment variable (Production + Preview)
-    if (typeof process !== 'undefined' && process.env && process.env.GROQ_API_KEY) {
-        console.log('✅ API key loaded from Vercel environment');
-        return process.env.GROQ_API_KEY;
-    }
-    
-    // Priority 2: Runtime injection (for custom deployments)
+    // Priority 1: Vercel config.js (created during build)
     if (typeof window !== 'undefined' && window._env_ && window._env_.GROQ_API_KEY) {
-        console.log('✅ API key loaded from runtime config');
+        console.log('✅ API key loaded from config.js');
         return window._env_.GROQ_API_KEY;
     }
     
-    // Priority 3: Local development fallback
-    // ⚠️ Replace with your actual key for local testing
-    // ⚠️ This should NOT be committed to GitHub
+    // Priority 2: Local development fallback
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         console.warn('⚠️ Local development mode - using fallback key');
-        // 🔥 IMPORTANT: Replace this with your key for local testing
+        // 🔥 Replace this with your actual key for local testing
         // DO NOT commit this to GitHub!
         return 'gsk_your_local_testing_key_here';
     }
     
-    console.error('❌ API key not found. Please check your environment variables.');
-    console.error('💡 Set GROQ_API_KEY in Vercel Environment Variables');
+    console.error('❌ API key not found. Please check your configuration.');
+    console.error('💡 Make sure config.js is loaded before script.js on Vercel');
     return '';
 }
 
