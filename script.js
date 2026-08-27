@@ -15,28 +15,11 @@ let interviewState = {
 };
 
 // ============================================
-// APP CONFIGURATION (API Key from Vercel)
+// APP CONFIGURATION — No API Key Needed!
 // ============================================
 
-function getSessionToken() {
-    // Priority 1: Vercel config.js (created during build)
-    if (typeof window !== 'undefined' && window._env_ && window._env_.GROQ_API_KEY) {
-        console.log('✅ API key loaded from config.js');
-        return window._env_.GROQ_API_KEY;
-    }
-    
-    // Priority 2: Local development fallback
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        console.warn('⚠️ Local development mode - using fallback key');
-        // 🔥 Replace this with your actual key for local testing
-        // DO NOT commit this to GitHub!
-        return 'gsk_your_local_testing_key_here';
-    }
-    
-    console.error('❌ API key not found. Please check your configuration.');
-    console.error('💡 Make sure config.js is loaded before script.js on Vercel');
-    return '';
-}
+// ✅ The API key is now on the server (api/groq.js)
+// We don't need it in the frontend anymore!
 
 // ============================================
 // DOM REFERENCES (Shared across pages)
@@ -328,20 +311,13 @@ function speakText(text, callback) {
 // ============================================
 
 async function generateQuestions() {
-    const apiKey = getSessionToken();
     const jobDescription = jobDescriptionInput ? jobDescriptionInput.value.trim() : '';
-    
-    if (!apiKey) {
-        alert('API key not found. Please check your configuration.');
-        return;
-    }
     
     if (!jobDescription) {
         alert('Please paste a job description.');
         return;
     }
     
-    interviewState.apiKey = apiKey;
     interviewState.jobDescription = jobDescription;
     
     if (generateBtn) {
@@ -366,11 +342,11 @@ Job Description:
 ${jobDescription}
         `.trim();
         
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        // ✅ Call your Vercel serverless API (NO API KEY HERE!)
+        const response = await fetch('/api/groq', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 model: 'openai/gpt-oss-120b',
@@ -478,7 +454,7 @@ async function startInterview() {
     
     console.log(`✅ ${interviewState.questions.length} questions found`);
     
-    // 🔥 Hide preparation message, show interview elements
+    // Hide preparation message, show interview elements
     const prepMessage = document.getElementById('preparationMessage');
     if (prepMessage) prepMessage.style.display = 'none';
     
@@ -774,13 +750,7 @@ function getCameraSummary() {
 }
 
 async function getFeedback() {
-    const apiKey = getSessionToken();
-    
-    if (!apiKey) {
-        alert('API key not found. Please check your configuration.');
-        return;
-    }
-    
+    // ✅ Call your Vercel serverless API (NO API KEY HERE!)
     if (getFeedbackBtn) {
         getFeedbackBtn.disabled = true;
         getFeedbackBtn.textContent = 'Analyzing...';
@@ -854,11 +824,11 @@ Provide feedback including the following sections. Format as JSON:
 Be honest but constructive. If camera data is available, incorporate it into the bodyLanguage and overall assessment.
 `;
         
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        // ✅ Call your Vercel serverless API (NO API KEY HERE!)
+        const response = await fetch('/api/groq', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 model: 'openai/gpt-oss-120b',
@@ -919,8 +889,8 @@ Be honest but constructive. If camera data is available, incorporate it into the
                     <br><br>
                     <strong>Tips:</strong>
                     <ul>
-                        <li>Check your API key is correct</li>
                         <li>Make sure you have internet connection</li>
+                        <li>Check the Vercel logs for more details</li>
                         <li>Try again in a moment</li>
                     </ul>
                 </div>
@@ -1360,6 +1330,29 @@ document.addEventListener('keydown', function(event) {
 // ============================================
 // FALLBACK: Direct click handler for Start Interview
 // ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const btn = document.getElementById('goToInterviewBtn');
+        if (btn) {
+            console.log('✅ Fallback: Start Interview button found');
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🟢 Fallback: Start Interview clicked!');
+                window.location.href = 'interview.html';
+            });
+        }
+    }, 300);
+});
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+console.log('Interview Coach - Multi-Page Ready!');
+console.log(`Current page: ${getCurrentPage()}`);
+console.log('✅ API key is on the server (api/groq.js)');
+console.log('📊 Camera focus tracking is integrated into feedback.');
 
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
