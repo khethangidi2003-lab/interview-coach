@@ -1,4 +1,10 @@
 {
     "buildCommand": "echo \"window._env_ = { GROQ_API_KEY: '$GROQ_API_KEY' };\" > config.js",
-    "outputDirectory": "."
+    "outputDirectory": ".",
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
 }
