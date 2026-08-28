@@ -1012,89 +1012,418 @@ function displayFeedback(feedback) {
 
 async function exportToPDF() {
     if (exportPdfBtn) {
-        exportPdfBtn.textContent = 'Generating PDF...';
+        exportPdfBtn.textContent = '⏳ Generating PDF...';
         exportPdfBtn.disabled = true;
     }
     
     try {
+        // Calculate summary stats
+        let totalFocus = 0;
+        let focusCount = 0;
+        let totalLookedAway = 0;
+        
+        if (interviewState.focusData) {
+            interviewState.focusData.forEach(data => {
+                if (data && data.focusScores && data.focusScores.length > 0) {
+                    const avg = data.focusScores.reduce((a, b) => a + b, 0) / data.focusScores.length;
+                    totalFocus += avg;
+                    focusCount++;
+                }
+                if (data && data.gazeEvents) {
+                    totalLookedAway += data.gazeEvents.length;
+                }
+            });
+        }
+        
+        const avgFocus = focusCount > 0 ? Math.round(totalFocus / focusCount) : 0;
+        const answeredQuestions = interviewState.answers.filter(a => a && a.trim() !== '').length;
+        const totalQuestions = interviewState.questions.length;
+        
+        // Build the professional report
         let contentHTML = `
-            <div style="padding: 40px; font-family: 'Inter', Arial, sans-serif; color: #0A1628; background: white; max-width: 800px; margin: 0 auto;">
-                <div style="text-align: center; border-bottom: 2px solid #C9A84C; padding-bottom: 20px; margin-bottom: 30px;">
-                    <h1 style="font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin: 0;">Interview Coach</h1>
-                    <p style="color: #3D4A5C; margin-top: 4px;">AI-Powered Interview Practice</p>
-                    <p style="font-size: 12px; color: #7A8798; margin-top: 8px;">Generated: ${new Date().toLocaleString()}</p>
-                </div>
-                <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; letter-spacing: -0.01em;">Interview Summary</h2>
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                    
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    
+                    body {
+                        font-family: 'Inter', Arial, sans-serif;
+                        color: #0A1628;
+                        background: white;
+                        padding: 0;
+                        margin: 0;
+                    }
+                    
+                    .report-container {
+                        max-width: 800px;
+                        margin: 0 auto;
+                        padding: 40px;
+                    }
+                    
+                    /* Header */
+                    .report-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        border-bottom: 3px solid #C9A84C;
+                        padding-bottom: 20px;
+                        margin-bottom: 30px;
+                    }
+                    
+                    .report-header-left {
+                        display: flex;
+                        align-items: center;
+                        gap: 16px;
+                    }
+                    
+                    .report-logo {
+                        width: 50px;
+                        height: 50px;
+                        background: #0A1628;
+                        border-radius: 4px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: #C9A84C;
+                        font-size: 24px;
+                        font-weight: 700;
+                    }
+                    
+                    .report-title {
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: #0A1628;
+                        letter-spacing: -0.02em;
+                    }
+                    
+                    .report-title span {
+                        color: #C9A84C;
+                    }
+                    
+                    .report-subtitle {
+                        font-size: 12px;
+                        color: #7A8798;
+                        margin-top: 2px;
+                    }
+                    
+                    .report-meta {
+                        text-align: right;
+                        font-size: 12px;
+                        color: #7A8798;
+                        line-height: 1.6;
+                    }
+                    
+                    .report-meta strong {
+                        color: #0A1628;
+                    }
+                    
+                    /* Executive Summary */
+                    .executive-summary {
+                        background: #F5F6F8;
+                        border-radius: 8px;
+                        padding: 24px 28px;
+                        margin-bottom: 30px;
+                        border-left: 4px solid #C9A84C;
+                    }
+                    
+                    .executive-summary h2 {
+                        font-size: 14px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.06em;
+                        color: #7A8798;
+                        margin-bottom: 12px;
+                    }
+                    
+                    .summary-grid {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr 1fr;
+                        gap: 16px;
+                    }
+                    
+                    .summary-item {
+                        text-align: center;
+                    }
+                    
+                    .summary-item .number {
+                        font-size: 28px;
+                        font-weight: 700;
+                        color: #0A1628;
+                    }
+                    
+                    .summary-item .label {
+                        font-size: 12px;
+                        color: #7A8798;
+                        margin-top: 2px;
+                    }
+                    
+                    .summary-item .number.gold {
+                        color: #C9A84C;
+                    }
+                    
+                    .summary-item .number.green {
+                        color: #1A7A4A;
+                    }
+                    
+                    .summary-item .number.orange {
+                        color: #B8860B;
+                    }
+                    
+                    /* Section Headers */
+                    .section-header {
+                        font-size: 18px;
+                        font-weight: 600;
+                        color: #0A1628;
+                        margin: 30px 0 16px 0;
+                        padding-bottom: 8px;
+                        border-bottom: 2px solid #E2E4E8;
+                        letter-spacing: -0.01em;
+                    }
+                    
+                    /* Question Items */
+                    .question-item {
+                        padding: 16px 20px;
+                        background: #F5F6F8;
+                        border-radius: 6px;
+                        margin-bottom: 12px;
+                        border-left: 3px solid #C9A84C;
+                    }
+                    
+                    .question-item .q {
+                        font-weight: 600;
+                        font-size: 15px;
+                        color: #0A1628;
+                        margin-bottom: 4px;
+                    }
+                    
+                    .question-item .a {
+                        font-size: 14px;
+                        color: #3D4A5C;
+                        padding-left: 8px;
+                        margin-top: 4px;
+                    }
+                    
+                    .question-item .a-label {
+                        font-size: 11px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.04em;
+                        color: #7A8798;
+                    }
+                    
+                    .question-item .focus-badge {
+                        display: inline-block;
+                        font-size: 11px;
+                        font-weight: 600;
+                        padding: 2px 10px;
+                        border-radius: 12px;
+                        margin-top: 6px;
+                    }
+                    
+                    .focus-badge.high {
+                        background: #E6F4EC;
+                        color: #1A7A4A;
+                    }
+                    
+                    .focus-badge.medium {
+                        background: #FDF3E0;
+                        color: #B8860B;
+                    }
+                    
+                    .focus-badge.low {
+                        background: #FDE8E8;
+                        color: #B22222;
+                    }
+                    
+                    /* No Answer */
+                    .no-answer {
+                        color: #7A8798;
+                        font-style: italic;
+                        font-size: 14px;
+                    }
+                    
+                    /* Footer */
+                    .report-footer {
+                        margin-top: 40px;
+                        padding-top: 20px;
+                        border-top: 1px solid #E2E4E8;
+                        text-align: center;
+                        font-size: 12px;
+                        color: #7A8798;
+                    }
+                    
+                    .report-footer strong {
+                        color: #0A1628;
+                    }
+                    
+                    @media (max-width: 600px) {
+                        .report-header {
+                            flex-direction: column;
+                            text-align: center;
+                            gap: 12px;
+                        }
+                        
+                        .report-meta {
+                            text-align: center;
+                        }
+                        
+                        .summary-grid {
+                            grid-template-columns: 1fr 1fr;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="report-container">
+                    
+                    <!-- HEADER -->
+                    <div class="report-header">
+                        <div class="report-header-left">
+                            <div class="report-logo">IC</div>
+                            <div>
+                                <div class="report-title">Interview<span>Coach</span></div>
+                                <div class="report-subtitle">AI-Powered Interview Practice</div>
+                            </div>
+                        </div>
+                        <div class="report-meta">
+                            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+                            <div><strong>Questions:</strong> ${totalQuestions}</div>
+                            <div><strong>Answered:</strong> ${answeredQuestions} of ${totalQuestions}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- EXECUTIVE SUMMARY -->
+                    <div class="executive-summary">
+                        <h2>📊 Executive Summary</h2>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <div class="number ${avgFocus >= 80 ? 'green' : avgFocus >= 50 ? 'orange' : ''}">${avgFocus}%</div>
+                                <div class="label">Average Focus</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="number gold">${answeredQuestions}/${totalQuestions}</div>
+                                <div class="label">Questions Answered</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="number ${totalLookedAway === 0 ? 'green' : 'orange'}">${totalLookedAway}</div>
+                                <div class="label">Times Looked Away</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- INTERVIEW DETAILS -->
+                    <div class="section-header">📋 Interview Summary</div>
         `;
         
+        // Add questions and answers
         interviewState.questions.forEach((question, index) => {
-            const answer = interviewState.answers[index] || '(No answer provided)';
-            let focusInfo = '';
+            const answer = interviewState.answers[index] || '';
+            const hasAnswer = answer && answer.trim() !== '';
+            
+            // Get focus data for this question
+            let focusHTML = '';
             if (interviewState.focusData && interviewState.focusData[index]) {
                 const data = interviewState.focusData[index];
-                const avgFocus = data.focusScores.length > 0 
+                const avgFocus = data.focusScores && data.focusScores.length > 0 
                     ? Math.round(data.focusScores.reduce((a, b) => a + b, 0) / data.focusScores.length) 
                     : 0;
                 const timesLookedAway = data.gazeEvents ? data.gazeEvents.length : 0;
-                focusInfo = `<div style="font-size: 12px; color: #7A8798; margin-top: 4px;">Focus: ${avgFocus}% | Looked away: ${timesLookedAway} times</div>`;
+                
+                let focusClass = 'high';
+                if (avgFocus < 50) focusClass = 'low';
+                else if (avgFocus < 80) focusClass = 'medium';
+                
+                let focusText = `${avgFocus}% Focus`;
+                if (timesLookedAway > 0) {
+                    focusText += ` · ${timesLookedAway} look${timesLookedAway > 1 ? 's' : ''} away`;
+                }
+                
+                focusHTML = `<span class="focus-badge ${focusClass}">${focusText}</span>`;
             }
+            
             contentHTML += `
-                <div style="margin-bottom: 16px; padding: 12px 16px; background: #F5F6F8; border-left: 3px solid #C9A84C;">
-                    <div style="font-weight: 600; margin-bottom: 4px;">Q${index + 1}: ${question}</div>
-                    <div style="color: #3D4A5C; font-size: 14px; padding-left: 8px;">A: ${answer}</div>
-                    ${focusInfo}
+                <div class="question-item">
+                    <div class="q">Q${index + 1}: ${question}</div>
+                    <div class="a">
+                        <span class="a-label">Answer:</span>
+                        ${hasAnswer ? answer : '<span class="no-answer">No answer provided</span>'}
+                    </div>
+                    ${focusHTML}
                 </div>
             `;
         });
         
+        // Add feedback if available
         if (feedbackContent && feedbackContent.innerHTML) {
-            contentHTML += `<div style="margin-top: 30px; border-top: 1px solid #E2E4E8; padding-top: 20px;">`;
-            contentHTML += `<h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">AI Feedback</h2>`;
-            
             const scoreElement = feedbackContent.querySelector('.feedback-score');
-            if (scoreElement) {
-                const scoreText = scoreElement.textContent.trim();
-                contentHTML += `
-                    <div style="font-size: 32px; font-weight: 300; text-align: center; padding: 16px; background: #F5F6F8; margin-bottom: 16px;">
-                        ${scoreText}
-                    </div>
-                `;
-            }
-            
             const sections = feedbackContent.querySelectorAll('.feedback-section');
-            sections.forEach(section => {
-                const title = section.querySelector('h4');
-                const content = section.querySelector('p, ul');
-                if (title && content) {
-                    let contentText = content.innerHTML;
-                    if (content.tagName === 'UL') {
-                        const items = content.querySelectorAll('li');
-                        let listHTML = '<ul style="padding-left: 20px; margin: 4px 0;">';
-                        items.forEach(item => {
-                            listHTML += `<li style="margin-bottom: 2px;">${item.textContent}</li>`;  
-                        });
-                        listHTML += '</ul>';
-                        contentText = listHTML;
-                    }
+            
+            if (scoreElement || sections.length > 0) {
+                contentHTML += `
+                    <div class="section-header">🤖 AI Feedback</div>
+                `;
+                
+                // Score
+                if (scoreElement) {
+                    const scoreText = scoreElement.textContent.trim();
+                    const scoreClass = scoreElement.className.includes('excellent') ? '#1A7A4A' : 
+                                      scoreElement.className.includes('good') ? '#0A1628' :
+                                      scoreElement.className.includes('average') ? '#B8860B' : '#B22222';
                     contentHTML += `
-                        <div style="margin-bottom: 12px; padding: 12px 16px; background: white; border: 1px solid #E2E4E8;">
-                            <strong style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #7A8798; display: block; margin-bottom: 4px;">${title.textContent}</strong>
-                            <div style="margin-top: 4px; font-size: 14px;">${contentText}</div>
+                        <div style="text-align:center;padding:16px;background:#F5F6F8;border-radius:8px;margin-bottom:16px;">
+                            <div style="font-size:36px;font-weight:300;color:${scoreClass};">${scoreText}</div>
                         </div>
                     `;
                 }
-            });
-            
-            contentHTML += `</div>`;
+                
+                // Sections
+                sections.forEach(section => {
+                    const title = section.querySelector('h4');
+                    const content = section.querySelector('p, ul');
+                    if (title && content) {
+                        let contentText = content.innerHTML;
+                        if (content.tagName === 'UL') {
+                            const items = content.querySelectorAll('li');
+                            let listHTML = '<ul style="padding-left:20px;margin:4px 0;">';
+                            items.forEach(item => {
+                                listHTML += `<li style="margin-bottom:2px;font-size:14px;color:#3D4A5C;">${item.textContent}</li>`;
+                            });
+                            listHTML += '</ul>';
+                            contentText = listHTML;
+                        } else {
+                            contentText = `<p style="font-size:14px;color:#3D4A5C;line-height:1.7;">${content.textContent}</p>`;
+                        }
+                        contentHTML += `
+                            <div style="padding:12px 16px;background:white;border:1px solid #E2E4E8;border-radius:6px;margin-bottom:12px;">
+                                <strong style="font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#7A8798;display:block;margin-bottom:4px;">${title.textContent}</strong>
+                                ${contentText}
+                            </div>
+                        `;
+                    }
+                });
+            }
         }
         
+        // Footer
         contentHTML += `
-                <div style="text-align: center; border-top: 1px solid #E2E4E8; padding-top: 20px; margin-top: 30px; font-size: 12px; color: #7A8798;">
-                    © Interview Coach — AI-Powered Interview Practice
+                    <div class="report-footer">
+                        © 2026 Interview Coach — Created by <strong>Khetha Ngidi</strong> &bull; AI-Powered Interview Practice
+                    </div>
+                    
                 </div>
-            </div>
+            </body>
+            </html>
         `;
         
+        // Create a temporary container for the content
         const container = document.createElement('div');
         container.innerHTML = contentHTML;
         container.style.position = 'absolute';
@@ -1135,7 +1464,7 @@ async function exportToPDF() {
         alert('Failed to generate PDF. Error: ' + error.message);
     } finally {
         if (exportPdfBtn) {
-            exportPdfBtn.textContent = 'Export as PDF';
+            exportPdfBtn.textContent = '📄 Export as PDF';
             exportPdfBtn.disabled = false;
         }
     }
