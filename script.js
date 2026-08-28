@@ -1060,12 +1060,13 @@ async function exportToPDF() {
                         background: white;
                         padding: 0;
                         margin: 0;
+                        -webkit-font-smoothing: antialiased;
                     }
                     
                     .report-container {
                         max-width: 800px;
                         margin: 0 auto;
-                        padding: 40px;
+                        padding: 40px 40px 30px;
                     }
                     
                     /* Header */
@@ -1073,32 +1074,25 @@ async function exportToPDF() {
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
-                        border-bottom: 3px solid #C9A84C;
+                        border-bottom: 2px solid #C9A84C;
                         padding-bottom: 20px;
-                        margin-bottom: 30px;
+                        margin-bottom: 28px;
                     }
                     
                     .report-header-left {
                         display: flex;
                         align-items: center;
-                        gap: 16px;
+                        gap: 14px;
                     }
                     
-                    .report-logo {
-                        width: 50px;
-                        height: 50px;
-                        background: #0A1628;
-                        border-radius: 4px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        color: #C9A84C;
-                        font-size: 24px;
-                        font-weight: 700;
+                    .report-logo-img {
+                        height: 44px;
+                        width: auto;
+                        display: block;
                     }
                     
                     .report-title {
-                        font-size: 24px;
+                        font-size: 22px;
                         font-weight: 700;
                         color: #0A1628;
                         letter-spacing: -0.02em;
@@ -1109,33 +1103,35 @@ async function exportToPDF() {
                     }
                     
                     .report-subtitle {
-                        font-size: 12px;
+                        font-size: 11px;
                         color: #7A8798;
-                        margin-top: 2px;
+                        margin-top: 1px;
+                        letter-spacing: 0.02em;
                     }
                     
                     .report-meta {
                         text-align: right;
-                        font-size: 12px;
+                        font-size: 11px;
                         color: #7A8798;
-                        line-height: 1.6;
+                        line-height: 1.7;
                     }
                     
                     .report-meta strong {
                         color: #0A1628;
+                        font-weight: 600;
                     }
                     
                     /* Executive Summary */
                     .executive-summary {
                         background: #F5F6F8;
-                        border-radius: 8px;
-                        padding: 24px 28px;
-                        margin-bottom: 30px;
-                        border-left: 4px solid #C9A84C;
+                        border-radius: 4px;
+                        padding: 20px 24px;
+                        margin-bottom: 28px;
+                        border-left: 3px solid #C9A84C;
                     }
                     
                     .executive-summary h2 {
-                        font-size: 14px;
+                        font-size: 11px;
                         font-weight: 600;
                         text-transform: uppercase;
                         letter-spacing: 0.06em;
@@ -1145,8 +1141,8 @@ async function exportToPDF() {
                     
                     .summary-grid {
                         display: grid;
-                        grid-template-columns: 1fr 1fr 1fr;
-                        gap: 16px;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 12px;
                     }
                     
                     .summary-item {
@@ -1154,15 +1150,10 @@ async function exportToPDF() {
                     }
                     
                     .summary-item .number {
-                        font-size: 28px;
+                        font-size: 26px;
                         font-weight: 700;
                         color: #0A1628;
-                    }
-                    
-                    .summary-item .label {
-                        font-size: 12px;
-                        color: #7A8798;
-                        margin-top: 2px;
+                        letter-spacing: -0.02em;
                     }
                     
                     .summary-item .number.gold {
@@ -1177,55 +1168,67 @@ async function exportToPDF() {
                         color: #B8860B;
                     }
                     
+                    .summary-item .label {
+                        font-size: 11px;
+                        color: #7A8798;
+                        margin-top: 2px;
+                        letter-spacing: 0.02em;
+                    }
+                    
                     /* Section Headers */
                     .section-header {
-                        font-size: 18px;
+                        font-size: 16px;
                         font-weight: 600;
                         color: #0A1628;
-                        margin: 30px 0 16px 0;
+                        margin: 28px 0 14px 0;
                         padding-bottom: 8px;
-                        border-bottom: 2px solid #E2E4E8;
+                        border-bottom: 1px solid #E2E4E8;
                         letter-spacing: -0.01em;
                     }
                     
                     /* Question Items */
                     .question-item {
-                        padding: 16px 20px;
+                        padding: 14px 18px;
                         background: #F5F6F8;
-                        border-radius: 6px;
-                        margin-bottom: 12px;
+                        border-radius: 4px;
+                        margin-bottom: 10px;
                         border-left: 3px solid #C9A84C;
                     }
                     
                     .question-item .q {
                         font-weight: 600;
-                        font-size: 15px;
+                        font-size: 14px;
                         color: #0A1628;
                         margin-bottom: 4px;
+                        line-height: 1.6;
                     }
                     
                     .question-item .a {
-                        font-size: 14px;
+                        font-size: 13px;
                         color: #3D4A5C;
-                        padding-left: 8px;
+                        padding-left: 6px;
                         margin-top: 4px;
+                        line-height: 1.7;
                     }
                     
                     .question-item .a-label {
-                        font-size: 11px;
+                        font-size: 10px;
                         font-weight: 600;
                         text-transform: uppercase;
                         letter-spacing: 0.04em;
                         color: #7A8798;
+                        display: inline-block;
+                        margin-right: 4px;
                     }
                     
                     .question-item .focus-badge {
                         display: inline-block;
-                        font-size: 11px;
-                        font-weight: 600;
+                        font-size: 10px;
+                        font-weight: 500;
                         padding: 2px 10px;
                         border-radius: 12px;
                         margin-top: 6px;
+                        letter-spacing: 0.02em;
                     }
                     
                     .focus-badge.high {
@@ -1243,38 +1246,92 @@ async function exportToPDF() {
                         color: #B22222;
                     }
                     
-                    /* No Answer */
                     .no-answer {
                         color: #7A8798;
                         font-style: italic;
-                        font-size: 14px;
+                        font-size: 13px;
+                    }
+                    
+                    /* Feedback Section */
+                    .feedback-score-box {
+                        text-align: center;
+                        padding: 14px;
+                        background: #F5F6F8;
+                        border-radius: 4px;
+                        margin-bottom: 14px;
+                    }
+                    
+                    .feedback-score-box .score-number {
+                        font-size: 34px;
+                        font-weight: 300;
+                        letter-spacing: -0.02em;
+                    }
+                    
+                    .feedback-section-item {
+                        padding: 12px 16px;
+                        background: white;
+                        border: 1px solid #E2E4E8;
+                        border-radius: 4px;
+                        margin-bottom: 10px;
+                    }
+                    
+                    .feedback-section-item .label {
+                        font-size: 10px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.04em;
+                        color: #7A8798;
+                        display: block;
+                        margin-bottom: 4px;
+                    }
+                    
+                    .feedback-section-item .content {
+                        font-size: 13px;
+                        color: #3D4A5C;
+                        line-height: 1.7;
+                    }
+                    
+                    .feedback-section-item ul {
+                        padding-left: 18px;
+                        margin: 4px 0;
+                    }
+                    
+                    .feedback-section-item ul li {
+                        font-size: 13px;
+                        color: #3D4A5C;
+                        margin-bottom: 2px;
+                        line-height: 1.6;
                     }
                     
                     /* Footer */
                     .report-footer {
-                        margin-top: 40px;
-                        padding-top: 20px;
+                        margin-top: 32px;
+                        padding-top: 16px;
                         border-top: 1px solid #E2E4E8;
                         text-align: center;
-                        font-size: 12px;
+                        font-size: 10px;
                         color: #7A8798;
+                        letter-spacing: 0.02em;
                     }
                     
                     .report-footer strong {
                         color: #0A1628;
+                        font-weight: 600;
                     }
                     
+                    /* Responsive */
                     @media (max-width: 600px) {
+                        .report-container {
+                            padding: 24px 16px;
+                        }
                         .report-header {
                             flex-direction: column;
                             text-align: center;
-                            gap: 12px;
+                            gap: 10px;
                         }
-                        
                         .report-meta {
                             text-align: center;
                         }
-                        
                         .summary-grid {
                             grid-template-columns: 1fr 1fr;
                         }
@@ -1287,7 +1344,7 @@ async function exportToPDF() {
                     <!-- HEADER -->
                     <div class="report-header">
                         <div class="report-header-left">
-                            <div class="report-logo">IC</div>
+                            <img src="logo.PNG" alt="Interview Coach" class="report-logo-img">
                             <div>
                                 <div class="report-title">Interview<span>Coach</span></div>
                                 <div class="report-subtitle">AI-Powered Interview Practice</div>
@@ -1302,7 +1359,7 @@ async function exportToPDF() {
                     
                     <!-- EXECUTIVE SUMMARY -->
                     <div class="executive-summary">
-                        <h2>📊 Executive Summary</h2>
+                        <h2>Executive Summary</h2>
                         <div class="summary-grid">
                             <div class="summary-item">
                                 <div class="number ${avgFocus >= 80 ? 'green' : avgFocus >= 50 ? 'orange' : ''}">${avgFocus}%</div>
@@ -1320,7 +1377,7 @@ async function exportToPDF() {
                     </div>
                     
                     <!-- INTERVIEW DETAILS -->
-                    <div class="section-header">📋 Interview Summary</div>
+                    <div class="section-header">Interview Summary</div>
         `;
         
         // Add questions and answers
@@ -1328,7 +1385,6 @@ async function exportToPDF() {
             const answer = interviewState.answers[index] || '';
             const hasAnswer = answer && answer.trim() !== '';
             
-            // Get focus data for this question
             let focusHTML = '';
             if (interviewState.focusData && interviewState.focusData[index]) {
                 const data = interviewState.focusData[index];
@@ -1368,43 +1424,41 @@ async function exportToPDF() {
             
             if (scoreElement || sections.length > 0) {
                 contentHTML += `
-                    <div class="section-header">🤖 AI Feedback</div>
+                    <div class="section-header">AI Feedback</div>
                 `;
                 
-                // Score
                 if (scoreElement) {
                     const scoreText = scoreElement.textContent.trim();
                     const scoreClass = scoreElement.className.includes('excellent') ? '#1A7A4A' : 
                                       scoreElement.className.includes('good') ? '#0A1628' :
                                       scoreElement.className.includes('average') ? '#B8860B' : '#B22222';
                     contentHTML += `
-                        <div style="text-align:center;padding:16px;background:#F5F6F8;border-radius:8px;margin-bottom:16px;">
-                            <div style="font-size:36px;font-weight:300;color:${scoreClass};">${scoreText}</div>
+                        <div class="feedback-score-box">
+                            <div class="score-number" style="color:${scoreClass};">${scoreText}</div>
                         </div>
                     `;
                 }
                 
-                // Sections
                 sections.forEach(section => {
                     const title = section.querySelector('h4');
                     const content = section.querySelector('p, ul');
                     if (title && content) {
-                        let contentText = content.innerHTML;
+                        let contentHTMLStr = '';
                         if (content.tagName === 'UL') {
                             const items = content.querySelectorAll('li');
-                            let listHTML = '<ul style="padding-left:20px;margin:4px 0;">';
+                            let listHTML = '<ul>';
                             items.forEach(item => {
-                                listHTML += `<li style="margin-bottom:2px;font-size:14px;color:#3D4A5C;">${item.textContent}</li>`;
+                                listHTML += `<li>${item.textContent}</li>`;
                             });
                             listHTML += '</ul>';
-                            contentText = listHTML;
+                            contentHTMLStr = listHTML;
                         } else {
-                            contentText = `<p style="font-size:14px;color:#3D4A5C;line-height:1.7;">${content.textContent}</p>`;
+                            contentHTMLStr = `<div class="content">${content.textContent}</div>`;
                         }
                         contentHTML += `
-                            <div style="padding:12px 16px;background:white;border:1px solid #E2E4E8;border-radius:6px;margin-bottom:12px;">
-                                <strong style="font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:#7A8798;display:block;margin-bottom:4px;">${title.textContent}</strong>
-                                ${contentText}
+                            <div class="feedback-section-item">
+                                <span class="label">${title.textContent}</span>
+                                ${contentHTMLStr}
                             </div>
                         `;
                     }
@@ -1412,10 +1466,9 @@ async function exportToPDF() {
             }
         }
         
-        // Footer
         contentHTML += `
                     <div class="report-footer">
-                        © 2026 Interview Coach — Created by <strong>Khetha Ngidi</strong> &bull; AI-Powered Interview Practice
+                        &copy; 2026 Interview Coach — Created by <strong>Khetha Ngidi</strong> &bull; AI-Powered Interview Practice
                     </div>
                     
                 </div>
@@ -1423,7 +1476,6 @@ async function exportToPDF() {
             </html>
         `;
         
-        // Create a temporary container for the content
         const container = document.createElement('div');
         container.innerHTML = contentHTML;
         container.style.position = 'absolute';
