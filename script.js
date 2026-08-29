@@ -56,9 +56,44 @@ const goToInterview = document.getElementById('goToInterview');
 const goToInterviewBtn = document.getElementById('goToInterviewBtn');
 
 // ============================================
+// LOADING CONTROLS — using loading3.svg
+// ============================================
+function showLoading(message, subMessage) {
+    const overlay = document.getElementById('loadingOverlay');
+    const text = document.getElementById('loadingText');
+    const sub = document.getElementById('loadingSub');
+    
+    if (overlay) {
+        overlay.style.display = 'flex';
+        if (text) text.textContent = message || 'Loading...';
+        if (sub) sub.textContent = subMessage || 'Please wait';
+    }
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+// Button loading state (optional)
+function setButtonLoading(button, isLoading, loadingText) {
+    const originalText = button.textContent;
+    
+    if (isLoading) {
+        button.disabled = true;
+        button.dataset.originalText = originalText;
+        button.innerHTML = `<span class="spinner-inline"></span> ${loadingText || 'Loading...'}`;
+    } else {
+        button.disabled = false;
+        button.textContent = button.dataset.originalText || originalText;
+    }
+}
+
+// ============================================
 // PAGE DETECTION
 // ============================================
-
 function getCurrentPage() {
     const path = window.location.pathname;
     if (path.includes('index.html')) return 'index';   // Landing page
@@ -611,7 +646,6 @@ function endInterviewEarly() {
 // ============================================
 // RESULTS PAGE
 // ============================================
-
 function loadResultsData() {
     const savedQuestions = sessionStorage.getItem('interviewQuestions');
     const savedAnswers = sessionStorage.getItem('interviewAnswers');
@@ -1525,7 +1559,6 @@ async function exportToPDF() {
 // ============================================
 // SET STATUS
 // ============================================
-
 function setStatus(message, type) {
     if (statusMessage) {
         statusMessage.textContent = message;
@@ -1539,7 +1572,6 @@ function setStatus(message, type) {
 // ============================================
 // EVENT LISTENERS
 // ============================================
-
 document.addEventListener('DOMContentLoaded', function() {
     const page = getCurrentPage();
     
@@ -1676,7 +1708,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================
 // KEYBOARD SHORTCUTS
 // ============================================
-
 document.addEventListener('keydown', function(event) {
     const page = getCurrentPage();
     
@@ -1711,7 +1742,6 @@ document.addEventListener('keydown', function(event) {
 // ============================================
 // FALLBACK: Direct click handler for Start Interview
 // ============================================
-
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
         const btn = document.getElementById('goToInterviewBtn');
@@ -1729,7 +1759,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================
 // INITIALIZATION
 // ============================================
-
 console.log('Interview Coach - Multi-Page Ready!');
 console.log(`Current page: ${getCurrentPage()}`);
 console.log('✅ API key is on the server (api/groq.js)');
@@ -1752,7 +1781,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================
 // INITIALIZATION
 // ============================================
-
 console.log('Interview Coach - Multi-Page Ready!');
 console.log(`Current page: ${getCurrentPage()}`);
 console.log('API key is loaded from configuration.');
