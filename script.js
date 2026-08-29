@@ -354,7 +354,9 @@ async function generateQuestions() {
     }
     
     interviewState.jobDescription = jobDescription;
-    
+    // Page loader
+    showLoading('Generating Questions...', 'This takes about 5-10 seconds');
+
     if (generateBtn) {
         generateBtn.disabled = true;
         generateBtn.textContent = 'Generating...';
@@ -441,11 +443,13 @@ ${jobDescription}
         
         // 🔥 AUTO-REDIRECT TO INTERVIEW PAGE
         console.log('🔄 Auto-redirecting to interview...');
+        hideLoading();
         window.location.href = 'interview.html';
         
     } catch (error) {
         console.error('Error:', error);
         alert('Error: ' + error.message);
+        hideLoading();
     } finally {
         if (generateBtn) {
             generateBtn.disabled = false;
@@ -784,6 +788,8 @@ function getCameraSummary() {
 }
 
 async function getFeedback() {
+showLoading('Analyzing Your Interview...', 'This takes about 5-10 seconds');
+
     // ✅ Call your Vercel serverless API (NO API KEY HERE!)
     if (getFeedbackBtn) {
         getFeedbackBtn.disabled = true;
@@ -916,6 +922,7 @@ Be honest but constructive. If camera data is available, incorporate it into the
         
     } catch (error) {
         console.error('Feedback error:', error);
+        hideLoading();
         if (feedbackContent) {
             feedbackContent.innerHTML = `
                 <div class="error">
@@ -936,7 +943,9 @@ Be honest but constructive. If camera data is available, incorporate it into the
             getFeedbackBtn.textContent = 'Get Feedback';
         }
     }
+
 }
+hideLoading();
 
 function displayFeedback(feedback) {
     let scoreClass = 'average';
@@ -1045,6 +1054,8 @@ function displayFeedback(feedback) {
 // ============================================
 
 async function exportToPDF() {
+    showLoading('Generating PDF...', 'This takes about 3-5 seconds');
+
     if (exportPdfBtn) {
         exportPdfBtn.textContent = '⏳ Generating PDF...';
         exportPdfBtn.disabled = true;
@@ -1543,10 +1554,12 @@ async function exportToPDF() {
         const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
         
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight * ratio);
+        hideLoading();
         pdf.save(`interview-summary-${new Date().toISOString().slice(0,10)}.pdf`);
         
     } catch (error) {
         console.error('PDF export error:', error);
+        hideLoading();
         alert('Failed to generate PDF. Error: ' + error.message);
     } finally {
         if (exportPdfBtn) {
