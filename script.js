@@ -718,35 +718,13 @@ function displayFullResults() {
         const div = document.createElement('div');
         div.className = 'question-item';
         
-        let focusHTML = '';
-        if (interviewState.focusData && interviewState.focusData[index]) {
-            const data = interviewState.focusData[index];
-            const avgFocus = data.focusScores.length > 0 
-                ? Math.round(data.focusScores.reduce((a, b) => a + b, 0) / data.focusScores.length) 
-                : 0;
-            const focusColor = avgFocus >= 80 ? 'var(--success)' : avgFocus >= 50 ? 'var(--warning)' : 'var(--danger)';
-            const timesLookedAway = data.gazeEvents ? data.gazeEvents.length : 0;
-            
-            focusHTML = `
-                <div style="margin-top: 8px; padding: 8px 12px; background: var(--surface); border-radius: var(--radius-sm); font-size: 0.85rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
-                        <span>🎯 Focus Score: <strong style="color: ${focusColor};">${avgFocus}%</strong></span>
-                        ${timesLookedAway > 0 ? `<span style="color: var(--warning);">👀 Looked away ${timesLookedAway} time${timesLookedAway > 1 ? 's' : ''}</span>` : ''}
-                    </div>
-                    <div style="width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden;">
-                        <div style="width: ${avgFocus}%; height: 100%; background: ${focusColor}; border-radius: 2px; transition: width 0.5s;"></div>
-                    </div>
-                </div>
-            `;
-        }
-        
+        // 🔥 FOCUS DATA REMOVED — only shows question and answer
         div.innerHTML = `
             <div>
                 <strong><span class="question-number">${index + 1}.</span> ${question}</strong>
                 <div class="question-answer">
                     Your answer: ${interviewState.answers[index] || '(No answer provided)'}
                 </div>
-                ${focusHTML}
             </div>
         `;
         questionsContainer.appendChild(div);
