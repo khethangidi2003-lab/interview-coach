@@ -1794,50 +1794,53 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================
-// PRIVACY MODAL — SIMPLIFIED
+// PRIVACY MODAL — FIXED VERSION
 // ============================================
 
-// Check if user has accepted privacy policy
 function checkPrivacyConsent() {
     const hasAccepted = localStorage.getItem('privacyConsent');
     const modal = document.getElementById('privacyModal');
     
+    console.log('Checking privacy consent:', hasAccepted ? 'Accepted' : 'Not accepted');
+    
     if (!hasAccepted && modal) {
-        modal.style.display = 'flex';  // ← Using style.display instead of class
+        modal.style.display = 'flex';
+        console.log('Modal shown');
     } else if (modal) {
         modal.style.display = 'none';
+        console.log('Modal hidden (already accepted)');
     }
 }
 
-// Accept privacy policy
 function acceptPrivacy() {
     localStorage.setItem('privacyConsent', 'true');
     const modal = document.getElementById('privacyModal');
     if (modal) {
         modal.style.display = 'none';
+        console.log('Privacy accepted, modal hidden');
     }
-    console.log('✅ Privacy consent accepted');
 }
 
-// 🔥 Auto-run when page loads
+// Call when page loads — use a small delay
 document.addEventListener('DOMContentLoaded', function() {
-    // Small delay to ensure DOM is ready
+    // Show modal after a tiny delay (ensures DOM is ready)
     setTimeout(function() {
         checkPrivacyConsent();
     }, 100);
     
-    // Accept button click handler (direct)
+    // Accept button
     const acceptBtn = document.getElementById('acceptPrivacyBtn');
     if (acceptBtn) {
         acceptBtn.addEventListener('click', function(e) {
             e.preventDefault();
             acceptPrivacy();
         });
-        console.log('✅ Accept button listener attached');
+        console.log('Accept button listener attached');
     } else {
-        console.warn('⚠️ Accept button not found');
+        console.warn('Accept button not found in DOM');
     }
 });
+
 // ============================================
 // INITIALIZATION
 // ============================================
