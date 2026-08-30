@@ -205,12 +205,19 @@ function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     
+    // 🔥 FIX: Keep listening continuously
     recognition.lang = 'en-US';
-    recognition.continuous = false;
+    recognition.continuous = true;      // ← Changed from false to true
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     
+    // 🔥 FIX: Silence timer to auto-stop after 2 seconds of silence
+    let silenceTimer = null;
+    
     recognition.onresult = function(event) {
+        // Reset silence timer when user speaks
+        clearTimeout(silenceTimer);
+        
         let finalTranscript = '';
         let interimTranscript = '';
         
@@ -232,10 +239,18 @@ function initSpeechRecognition() {
             interviewState.answers[interviewState.currentIndex] = finalTranscript;
             
             if (interviewState.isInterviewActive) {
-                setStatus('Answer recorded!', 'success');
+                setStatus('Answer recorded! Click "Next Question" to continue.', 'success');
                 if (nextQuestionBtn) nextQuestionBtn.disabled = false;
             }
         }
+        
+        // 🔥 Auto-stop after 2 seconds of silence
+        silenceTimer = setTimeout(() => {
+            if (interviewState.isListening) {
+                stopListening();
+                setStatus('⏹️ Stopped listening (silence detected)', '');
+            }
+        }, 2000);
     };
     
     recognition.onerror = function(event) {
@@ -250,12 +265,14 @@ function initSpeechRecognition() {
         interviewState.isListening = false;
         if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
         if (stopListeningBtn) stopListeningBtn.style.display = 'none';
+        clearTimeout(silenceTimer);
     };
     
     recognition.onend = function() {
         interviewState.isListening = false;
         if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
         if (stopListeningBtn) stopListeningBtn.style.display = 'none';
+        clearTimeout(silenceTimer);
     };
     
     return true;
@@ -493,7 +510,7 @@ async function startInterview() {
     
     console.log(`✅ ${interviewState.questions.length} questions found`);
     
-    // Hide preparation message, show interview elements
+    // 🔥 FIX: Hide preparation message
     const prepMessage = document.getElementById('preparationMessage');
     if (prepMessage) prepMessage.style.display = 'none';
     
@@ -529,6 +546,8 @@ async function startInterview() {
     interviewState.isInterviewActive = true;
     console.log('✅ Interview state reset with focusData initialized');
     
+    // 🔥 FIX: Hide Start Interview button, show listening buttons
+    if (startInterviewBtn) startInterviewBtn.style.display = 'none';
     if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
     if (stopListeningBtn) stopListeningBtn.style.display = 'none';
     if (nextQuestionBtn) {
@@ -569,9 +588,13 @@ function showQuestion(index) {
     if (answerDisplay) answerDisplay.style.display = 'none';
     if (answerText) answerText.textContent = 'Waiting for you to speak...';
     
+    // 🔥 FIX: Only show Start Listening button, hide Start Interview
     if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
     if (stopListeningBtn) stopListeningBtn.style.display = 'none';
     if (nextQuestionBtn) nextQuestionBtn.disabled = true;
+    
+    // 🔥 FIX: Ensure Start Interview button is hidden during questions
+    if (startInterviewBtn) startInterviewBtn.style.display = 'none';
     
     console.log('✅ UI updated, now speaking question...');
     
