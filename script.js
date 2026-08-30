@@ -1757,40 +1757,172 @@ document.addEventListener('keydown', function(event) {
 // ============================================
 // FALLBACK: Direct click handler for Start Interview
 // ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        const btn = document.getElementById('goToInterviewBtn');
-        if (btn) {
-            console.log('✅ Fallback: Start Interview button found');
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('🟢 Fallback: Start Interview clicked!');
-                window.location.href = 'interview.html';
-            });
-        }
-    }, 300);
-});
+function setupStartInterviewFallback() {
+    const btn = document.getElementById('goToInterviewBtn');
+    if (btn) {
+        console.log('Fallback: Start Interview button found');
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Fallback: Start Interview clicked!');
+            window.location.href = 'interview.html';
+        });
+    }
+}
 
 // ============================================
-// INITIALIZATION
+// INITIALIZATION — SINGLE DOMContentLoaded
 // ============================================
-console.log('Interview Coach - Multi-Page Ready!');
-console.log(`Current page: ${getCurrentPage()}`);
-console.log('✅ API key is on the server (api/groq.js)');
-console.log('📊 Camera focus tracking is integrated into feedback.');
-
 document.addEventListener('DOMContentLoaded', function() {
+    const page = getCurrentPage();
+    
+    // --- Privacy Modal ---
+    // Show modal after a tiny delay (ensures DOM is ready)
     setTimeout(function() {
-        const btn = document.getElementById('goToInterviewBtn');
-        if (btn) {
-            console.log('✅ Fallback: Start Interview button found');
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('🟢 Fallback: Start Interview clicked!');
-                window.location.href = 'interview.html';
+        checkPrivacyConsent();
+    }, 100);
+    
+    const acceptBtn = document.getElementById('acceptPrivacyBtn');
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            acceptPrivacy();
+        });
+        console.log('Accept button listener attached');
+    } else {
+        console.warn('Accept button not found in DOM');
+    }
+    
+    // --- Page-specific logic ---
+    switch(page) {
+        case 'index':
+            console.log('Landing page initialized');
+            break;
+            
+        case 'home':
+            console.log('App page initialized');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', generateQuestions);
+            }
+            if (goToInterviewBtn) {
+                goToInterviewBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.location.href = 'interview.html';
+                });
+            }
+            break;
+            
+        case 'interview':
+            console.log('Interview page initialized');
+            
+            // Load questions from session storage
+            if (!loadInterviewData()) {
+                alert('No questions found. Please generate questions first.');
+                window.location.href = 'home.html';
+                return;
+            }
+            
+            // Show initial state
+            if (currentQuestion) {
+                currentQuestion.textContent = 'Ready for your interview. Click "Start Interview" to begin.';
+            }
+            if (questionCounter) {
+                questionCounter.textContent = 'Ready to start';
+            }
+            if (startInterviewBtn) {
+                startInterviewBtn.style.display = 'inline-block';
+            }
+            if (nextQuestionBtn) {
+                nextQuestionBtn.style.display = 'none';
+            }
+            if (endInterviewBtn) {
+                endInterviewBtn.style.display = 'none';
+            }
+            
+            // Event listeners
+            if (startInterviewBtn) {
+                startInterviewBtn.addEventListener('click', startInterview);
+            }
+            if (startListeningBtn) {
+                startListeningBtn.addEventListener('click', startListening);
+            }
+            if (stopListeningBtn) {
+                stopListeningBtn.addEventListener('click', stopListening);
+            }
+            if (nextQuestionBtn) {
+                nextQuestionBtn.addEventListener('click', function() {
+                    if (!this.disabled) {
+                        showNextQuestion();
+                    }
+                });
+            }
+            if (endInterviewBtn) {
+                endInterviewBtn.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to end the interview early?')) {
+                        endInterviewEarly();
+                    }
+                });
+            }
+            break;
+            
+        case 'results':
+            console.log('Results page initialized');
+            
+            // Load results data
+            if (!loadResultsData()) {
+                alert('No interview data found. Please complete an interview first.');
+                window.location.href = 'home.html';
+                return;
+            }
+            
+            // Display results
+            displayFullResults();
+            
+            // Show feedback button
+            if (getFeedbackBtn) {
+                getFeedbackBtn.style.display = 'inline-block';
+            }
+            
+            // Event listeners
+            if (getFeedbackBtn) {
+                getFeedbackBtn.addEventListener('click', getFeedback);
+            }
+            if (exportPdfBtn) {
+                exportPdfBtn.addEventListener('click', exportToPDF);
+            }
+            break;
+            
+        case 'faq':
+            console.log('❓ FAQ page initialized');
+            
+            // FAQ accordion
+            document.querySelectorAll('.faq-question').forEach(button => {
+                button.addEventListener('click', function() {
+                    const item = this.closest('.faq-item');
+                    if (!item) return;
+                    
+                    const isOpen = item.classList.contains('open');
+                    
+                    const category = item.closest('.faq-category');
+                    if (category) {
+                        category.querySelectorAll('.faq-item').forEach(other => {
+                            if (other !== item) {
+                                other.classList.remove('open');
+                            }
+                        });
+                    }
+                    
+                    if (isOpen) {
+                        item.classList.remove('open');
+                    } else {
+                        item.classList.add('open');
+                    }
+                });
             });
-        }
-    }, 300);
+            break;
+    }
+    
+    // --- Start Interview Fallback (for home page) ---
+    setupStartInterviewFallback();
 });
 
 // ============================================
@@ -1820,26 +1952,6 @@ function acceptPrivacy() {
         console.log('Privacy accepted, modal hidden');
     }
 }
-
-// Call when page loads — use a small delay
-document.addEventListener('DOMContentLoaded', function() {
-    // Show modal after a tiny delay (ensures DOM is ready)
-    setTimeout(function() {
-        checkPrivacyConsent();
-    }, 100);
-    
-    // Accept button
-    const acceptBtn = document.getElementById('acceptPrivacyBtn');
-    if (acceptBtn) {
-        acceptBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            acceptPrivacy();
-        });
-        console.log('Accept button listener attached');
-    } else {
-        console.warn('Accept button not found in DOM');
-    }
-});
 
 // ============================================
 // INITIALIZATION
