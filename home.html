@@ -43,46 +43,37 @@
         </header>
 
         <!-- PRIVACY MODAL -->
-<div id="privacyModal" class="privacy-modal">
-    <div class="privacy-modal-content">
-        <div class="privacy-modal-header">
-            <h2>Privacy & Data Usage</h2>
+        <div id="privacyModal" class="privacy-modal">
+            <div class="privacy-modal-content">
+                <div class="privacy-modal-header">
+                    <h2>Privacy & Data Usage</h2>
+                </div>
+                <div class="privacy-modal-body">
+                    <div class="privacy-section">
+                        <h4>Camera & Microphone</h4>
+                        <p>Your camera and microphone are <strong>only active during the interview session</strong>. We use them to track your focus and listen to your answers. <strong>No video or audio is recorded, saved, or shared.</strong></p>
+                    </div>
+                    <div class="privacy-section">
+                        <h4>Job Description</h4>
+                        <p>Your job description is used <strong>only</strong> to generate relevant interview questions. It is <strong>not stored, saved, or shared</strong> with anyone.</p>
+                    </div>
+                    <div class="privacy-section">
+                        <h4>Your Answers</h4>
+                        <p>Your answers are sent to AI for feedback analysis. <strong>No one at Interview Coach reviews your answers.</strong> Everything stays in your browser session.</p>
+                    </div>
+                    <div class="privacy-section">
+                        <h4>Data Storage</h4>
+                        <p><strong>No data is stored on our servers.</strong> All data is cleared when you close the browser. You can end the interview at any time.</p>
+                    </div>
+                    <div class="privacy-section privacy-bottom-line">
+                        <p><strong>We built Interview Coach to help you succeed — not to track you. Your privacy matters.</strong></p>
+                    </div>
+                </div>
+                <div class="privacy-modal-footer">
+                    <button id="acceptPrivacyBtn" class="btn btn-accent">I Understand, Continue</button>
+                </div>
+            </div>
         </div>
-        <div class="privacy-modal-body">
-            <div class="privacy-section">
-                <h4>Camera & Microphone</h4>
-                <p>Your camera and microphone are <strong>only active during the interview session</strong>. We use them to track your focus and listen to your answers. <strong>No video or audio is recorded, saved, or shared.</strong></p>
-            </div>
-            <div class="privacy-section">
-                <h4>Job Description</h4>
-                <p>Your job description is used <strong>only</strong> to generate relevant interview questions. It is <strong>not stored, saved, or shared</strong> with anyone.</p>
-            </div>
-            <div class="privacy-section">
-                <h4>Your Answers</h4>
-                <p>Your answers are sent to AI for feedback analysis. <strong>No one at Interview Coach reviews your answers.</strong> Everything stays in your browser session.</p>
-            </div>
-            <div class="privacy-section">
-                <h4>Data Storage</h4>
-                <p><strong>No data is stored on our servers.</strong> All data is cleared when you close the browser. You can end the interview at any time.</p>
-            </div>
-            <div class="privacy-section privacy-bottom-line">
-                <p><strong>We built Interview Coach to help you succeed — not to track you. Your privacy matters.</strong></p>
-            </div>
-        </div>
-        <div class="privacy-modal-footer">
-            <button id="acceptPrivacyBtn" class="btn btn-accent">I Understand, Continue</button>
-        </div>
-    </div>
-</div>
-
-        <!-- LOADING OVERLAY -->
-<div id="loadingOverlay" class="loading-overlay" style="display: none;">
-    <div class="loading-content">
-        <img src="loading/loading1.svg" alt="Loading" class="loading-icon">
-        <p id="loadingText">Loading...</p>
-        <p class="loading-sub" id="loadingSub">Please wait</p>
-    </div>
-</div>
 
         <!-- SETUP: Job Description -->
         <section class="section" id="jdSection">
@@ -96,13 +87,15 @@
 
     </div>
 
+    <!-- SINGLE LOADING OVERLAY (only one!) -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <img src="loading/loading3.svg" alt="Loading" class="loading-icon">
+            <p id="loadingText">Loading...</p>
+            <p class="loading-sub" id="loadingSub">Please wait</p>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
-
-<style>
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.08); opacity: 0.8; }
-    }
-</style>
 </html>
