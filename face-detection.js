@@ -111,6 +111,7 @@ class FaceDetector {
             this.faceLandmarks = landmarks;
             this.noFaceFrames = 0;
             this.detectionFailures = 0;
+            this.lookingAwayCount = Math.max(0, this.lookingAwayCount - 5);
 
             // Draw face landmarks
             this.drawFaceLandmarks(landmarks);
@@ -417,31 +418,36 @@ class FaceDetector {
     // FOCUS SCORE & NUDGE
     // ============================================
 
-    updateFocusScore() {
-        let score = 100;
+updateFocusScore() {
+    let score = 100;
 
-        if (this.gazeDirection !== 'center' && this.gazeDirection !== 'unknown') {
-            const penalty = Math.min(20, this.lookingAwayCount * 0.5);
-            score = Math.max(0, score - penalty);
-        }
-
-        if (this.gazeDirection === 'unknown') {
-            const penalty = Math.min(30, this.lookingAwayCount * 0.7);
-            score = Math.max(0, score - penalty);
-        }
-
-        if (this.gazeDirection === 'center' && this.lookingAwayCount < 5) {
-            score = Math.min(100, score + 1);
-        }
-
-        this.focusScore = Math.round(score);
-
-        if (this.onFocusUpdate) {
-            this.onFocusUpdate(this.focusScore, this.gazeDirection);
-        }
-
-        this.checkNudge();
+    // 🔥 More aggressive penalty for looking away
+    if (this.gazeDirection !== 'center' && this.gazeDirection !== 'unknown') {
+        // Faster penalty: 5 points per second instead of 0.5
+        const penalty = Math.min(40, this.lookingAwayCount * 2);
+        score = Math.max(0, score - penalty);
     }
+
+    // 🔥 Severe penalty for no face detected
+    if (this.gazeDirection === 'unknown') {
+        // Drop quickly when face is missing
+        const penalty = Math.min(50, this.lookingAwayCount * 3);
+        score = Math.max(0, score - penalty);
+    }
+
+    // Recovery when looking at camera (slow and steady)
+    if (this.gazeDirection === 'center' && this.lookingAwayCount < 5) {
+        score = Math.min(100, score + 2);
+    }
+
+    this.focusScore = Math.round(score);
+
+    if (this.onFocusUpdate) {
+        this.onFocusUpdate(this.focusScore, this.gazeDirection);
+    }
+
+    this.checkNudge();
+}
 
     checkNudge() {
         const now = Date.now();
