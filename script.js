@@ -15,13 +15,6 @@ let interviewState = {
 };
 
 // ============================================
-// APP CONFIGURATION — No API Key Needed!
-// ============================================
-
-// ✅ The API key is now on the server (api/groq.js)
-// We don't need it in the frontend anymore!
-
-// ============================================
 // DOM REFERENCES (Shared across pages)
 // ============================================
 
@@ -205,7 +198,7 @@ function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     
-    // 🔥 FIX: Keep listening continuously
+    // FIX: Keep listening continuously
     recognition.lang = 'en-US';
     recognition.continuous = true;      // ← Changed from false to true
     recognition.interimResults = true;
@@ -244,11 +237,11 @@ function initSpeechRecognition() {
             }
         }
         
-        // 🔥 Auto-stop after 2 seconds of silence
+        // Auto-stop after 2 seconds of silence
         silenceTimer = setTimeout(() => {
             if (interviewState.isListening) {
                 stopListening();
-                setStatus('⏹️ Stopped listening (silence detected)', '');
+                setStatus('Stopped listening (silence detected)', '');
             }
         }, 2000);
     };
@@ -396,7 +389,7 @@ Job Description:
 ${jobDescription}
         `.trim();
         
-        // ✅ Call your Vercel serverless API (NO API KEY HERE!)
+        // Call your Vercel serverless API (NO API KEY HERE!)
         const response = await fetch('/api/groq', {
             method: 'POST',
             headers: {
@@ -458,8 +451,8 @@ ${jobDescription}
         sessionStorage.setItem('interviewQuestions', JSON.stringify(questions));
         sessionStorage.setItem('jobDescription', jobDescription);
         
-        // 🔥 AUTO-REDIRECT TO INTERVIEW PAGE
-        console.log('🔄 Auto-redirecting to interview...');
+        // AUTO-REDIRECT TO INTERVIEW PAGE
+        console.log('Auto-redirecting to interview...');
         hideLoading();
         window.location.href = 'interview.html';
         
@@ -487,7 +480,7 @@ function loadInterviewData() {
         try {
             interviewState.questions = JSON.parse(savedQuestions);
             interviewState.jobDescription = savedJobDescription || '';
-            console.log(`✅ Loaded ${interviewState.questions.length} questions from session storage`);
+            console.log(`Loaded ${interviewState.questions.length} questions from session storage`);
             return true;
         } catch (e) {
             console.error('Failed to load questions:', e);
@@ -498,7 +491,7 @@ function loadInterviewData() {
 }
 
 async function startInterview() {
-    console.log('🟢 START INTERVIEW TRIGGERED');
+    console.log('START INTERVIEW TRIGGERED');
     
     if (interviewState.questions.length === 0) {
         if (!loadInterviewData()) {
@@ -508,7 +501,7 @@ async function startInterview() {
         }
     }
     
-    console.log(`✅ ${interviewState.questions.length} questions found`);
+    console.log(`${interviewState.questions.length} questions found`);
     
     // 🔥 FIX: Hide preparation message
     const prepMessage = document.getElementById('preparationMessage');
@@ -521,16 +514,16 @@ async function startInterview() {
     if (controlsGroup) controlsGroup.style.display = 'flex';
     
     try {
-        console.log('📷 Starting camera...');
+        console.log('Starting camera...');
         const cameraContainer = document.getElementById('cameraContainer');
         if (cameraContainer) {
             cameraContainer.style.display = 'grid';
-            console.log('✅ Camera container visible');
+            console.log('Camera container visible');
         }
         await initFaceDetector();
-        console.log('✅ Face detector initialized');
+        console.log('Face detector initialized');
     } catch (e) {
-        console.log('⚠️ Face detection skipped:', e.message);
+        console.log('Face detection skipped:', e.message);
     }
     
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -544,7 +537,7 @@ async function startInterview() {
         gazeEvents: []
     }));
     interviewState.isInterviewActive = true;
-    console.log('✅ Interview state reset with focusData initialized');
+    console.log('Interview state reset with focusData initialized');
     
     // 🔥 FIX: Hide Start Interview button, show listening buttons
     if (startInterviewBtn) startInterviewBtn.style.display = 'none';
@@ -555,15 +548,15 @@ async function startInterview() {
         nextQuestionBtn.disabled = true;
     }
     if (endInterviewBtn) endInterviewBtn.style.display = 'inline-block';
-    console.log('✅ Buttons updated');
+    console.log('Buttons updated');
     
-    console.log('🔄 Showing first question...');
+    console.log('Showing first question...');
     showQuestion(0);
 }
 
 function showQuestion(index) {
-    console.log(`🔍 showQuestion called with index: ${index}`);
-    console.log(`📊 Total questions: ${interviewState.questions.length}`);
+    console.log(`showQuestion called with index: ${index}`);
+    console.log(`Total questions: ${interviewState.questions.length}`);
     
     if (index >= interviewState.questions.length) {
         console.log('🏁 All questions completed!');
@@ -572,14 +565,14 @@ function showQuestion(index) {
     }
     
     const question = interviewState.questions[index];
-    console.log(`📝 Question ${index + 1}: ${question.substring(0, 50)}...`);
+    console.log(`Question ${index + 1}: ${question.substring(0, 50)}...`);
     
     if (interviewState.focusData && interviewState.focusData[index]) {
         interviewState.focusData[index] = {
             focusScores: [],
             gazeEvents: []
         };
-        console.log(`✅ Focus data reset for question ${index + 1}`);
+        console.log(`Focus data reset for question ${index + 1}`);
     }
     
     if (currentQuestion) currentQuestion.textContent = question;
@@ -588,32 +581,32 @@ function showQuestion(index) {
     if (answerDisplay) answerDisplay.style.display = 'none';
     if (answerText) answerText.textContent = 'Waiting for you to speak...';
     
-    // 🔥 FIX: Only show Start Listening button, hide Start Interview
+    // FIX: Only show Start Listening button, hide Start Interview
     if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
     if (stopListeningBtn) stopListeningBtn.style.display = 'none';
     if (nextQuestionBtn) nextQuestionBtn.disabled = true;
     
-    // 🔥 FIX: Ensure Start Interview button is hidden during questions
+    // FIX: Ensure Start Interview button is hidden during questions
     if (startInterviewBtn) startInterviewBtn.style.display = 'none';
     
-    console.log('✅ UI updated, now speaking question...');
+    console.log('UI updated, now speaking question...');
     
     speakText(question, function() {
-        console.log('✅ Question spoken!');
+        console.log('Question spoken!');
         setStatus('Click "Start Listening" to speak your answer.', '');
         if (answerDisplay) answerDisplay.style.display = 'block';
         if (answerText) answerText.textContent = 'Press "Start Listening" and speak your answer clearly.';
-        console.log('✅ Answer display shown');
+        console.log('Answer display shown');
     });
 }
 
 function showNextQuestion() {
-    console.log('🔄 Moving to next question...');
+    console.log('Moving to next question...');
     stopListening();
     if (startListeningBtn) startListeningBtn.style.display = 'none';
     if (stopListeningBtn) stopListeningBtn.style.display = 'none';
     interviewState.currentIndex++;
-    console.log(`📍 Current index: ${interviewState.currentIndex}`);
+    console.log(`Current index: ${interviewState.currentIndex}`);
     if (interviewState.currentIndex < interviewState.questions.length) {
         showQuestion(interviewState.currentIndex);
     } else {
@@ -622,7 +615,7 @@ function showNextQuestion() {
 }
 
 function showCompletionScreen() {
-    console.log('🏁 Showing completion screen...');
+    console.log('Showing completion screen...');
     
     stopListening();
     interviewState.isInterviewActive = false;
@@ -718,7 +711,7 @@ function displayFullResults() {
         const div = document.createElement('div');
         div.className = 'question-item';
         
-        // 🔥 FOCUS DATA REMOVED — only shows question and answer
+        // FOCUS DATA REMOVED — only shows question and answer
         div.innerHTML = `
             <div>
                 <strong><span class="question-number">${index + 1}.</span> ${question}</strong>
@@ -789,7 +782,7 @@ function getCameraSummary() {
 }
 
 async function getFeedback() {
-    // 🔥 SHOW LOADING
+    // SHOW LOADING
     showLoading('Analyzing Your Interview...', 'This takes about 5-10 seconds');
 
     if (getFeedbackBtn) {
@@ -834,7 +827,7 @@ Camera/Body Language Data:
 - Questions that caused focus drops: ${cameraSummary.questionsWithLowFocus.length > 0 
     ? cameraSummary.questionsWithLowFocus.map(q => `Q${q.questionIndex + 1} (${q.avgFocus}%)`).join(', ') 
     : 'None'}
-- ${cameraSummary.lookingAwayCount === 0 ? '✅ Maintained excellent eye contact throughout' : '⚠️ Some eye contact issues detected'}
+- ${cameraSummary.lookingAwayCount === 0 ? ' Maintained excellent eye contact throughout' : '⚠️ Some eye contact issues detected'}
 `;
         } else {
             cameraInsights = 'No camera data available. Camera may not have been active during the interview.';
@@ -920,17 +913,17 @@ Be honest but constructive. If camera data is available, incorporate it into the
         displayFeedback(feedback);
         if (exportPdfBtn) exportPdfBtn.style.display = 'inline-block';
 
-        // ✅ HIDE LOADING — SUCCESS
+        // HIDE LOADING — SUCCESS
         hideLoading();
 
     } catch (error) {
         console.error('Feedback error:', error);
-        // ✅ HIDE LOADING — ERROR
+        // HIDE LOADING — ERROR
         hideLoading();
         if (feedbackContent) {
             feedbackContent.innerHTML = `
                 <div class="error">
-                    ❌ Error: ${error.message}
+                    Error: ${error.message}
                     <br><br>
                     <strong>Tips:</strong>
                     <ul>
@@ -974,7 +967,7 @@ function displayFeedback(feedback) {
         
         cameraHTML = `
             <div class="feedback-section" style="background: var(--surface-alt); border-left: 3px solid var(--accent);">
-                <h4>🎯 Body Language & Presence</h4>
+                <h4>Body Language & Presence</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
                     <div>
                         <div style="font-size: 0.75rem; color: var(--text-muted);">Focus Score</div>
@@ -992,10 +985,10 @@ function displayFeedback(feedback) {
                     </div>
                 </div>
                 <div style="margin-top: 8px; display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem;">
-                    <span>👀 Looked away: <strong>${summary.lookingAwayCount}</strong> times</span>
+                    <span>Looked away: <strong>${summary.lookingAwayCount}</strong> times</span>
                     ${summary.questionsWithLowFocus.length > 0 ? 
-                        `<span style="color: var(--warning);">⚠️ Questions with focus drop: ${summary.questionsWithLowFocus.map(q => `Q${q.questionIndex + 1}`).join(', ')}</span>` : 
-                        `<span style="color: var(--success);">✅ Maintained consistent focus</span>`
+                        `<span style="color: var(--warning);">Questions with focus drop: ${summary.questionsWithLowFocus.map(q => `Q${q.questionIndex + 1}`).join(', ')}</span>` : 
+                        `<span style="color: var(--success);">Maintained consistent focus</span>`
                     }
                 </div>
                 ${feedback.bodyLanguage ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 0.9rem;">${feedback.bodyLanguage}</div>` : ''}
@@ -1012,7 +1005,7 @@ function displayFeedback(feedback) {
             ${cameraHTML}
             
             <div class="feedback-section">
-                <h4>✅ Strengths</h4>
+                <h4>Strengths</h4>
                 <ul>
                     ${feedback.strengths.map(s => `<li class="positive">${s}</li>`).join('')}
                 </ul>
@@ -1026,18 +1019,18 @@ function displayFeedback(feedback) {
             </div>
             
             <div class="feedback-section">
-                <h4>💬 Communication Skills</h4>
+                <h4>Communication Skills</h4>
                 <p>${feedback.communication}</p>
             </div>
             
             <div class="feedback-section">
-                <h4>🎯 Did You Answer the Questions?</h4>
-                <p>${feedback.answeredQuestions ? '✅ Yes' : '❌ No'}</p>
+                <h4>Did You Answer the Questions?</h4>
+                <p>${feedback.answeredQuestions ? ' Yes' : ' No'}</p>
                 <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px;">${feedback.answerExplanation}</p>
             </div>
             
             <div class="feedback-section">
-                <h4>🗣️ Filler Words Analysis</h4>
+                <h4>Filler Words Analysis</h4>
                 <p>${feedback.fillerAnalysis}</p>
             </div>
             
@@ -1565,7 +1558,7 @@ async function exportToPDF() {
         alert('Failed to generate PDF. Error: ' + error.message);
     } finally {
         if (exportPdfBtn) {
-            exportPdfBtn.textContent = '📄 Export as PDF';
+            exportPdfBtn.textContent = 'Export as PDF';
             exportPdfBtn.disabled = false;
         }
     }
@@ -1585,19 +1578,38 @@ function setStatus(message, type) {
 }
 
 // ============================================
-// EVENT LISTENERS
+// SINGLE DOMContentLoaded LISTENER (EVERYTHING IN ONE PLACE)
 // ============================================
+
 document.addEventListener('DOMContentLoaded', function() {
     const page = getCurrentPage();
+    console.log(`Page: ${page}`);
     
+    // --- PRIVACY MODAL (HIGHEST PRIORITY) ---
+    // Show modal after a tiny delay
+    setTimeout(function() {
+        checkPrivacyConsent();
+    }, 50);
+    
+    // Accept button
+    const acceptBtn = document.getElementById('acceptPrivacyBtn');
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            acceptPrivacy();
+        });
+        console.log('Accept button ready');
+    }
+    
+    // --- PAGE-SPECIFIC LOGIC ---
     switch(page) {
         case 'index':
-            console.log('Landing page initialized');
-            // Landing page logic — nothing needed
+            console.log('Landing page');
             break;
             
         case 'home':
-            console.log('App page initialized');
+            console.log('App page');
             if (generateBtn) {
                 generateBtn.addEventListener('click', generateQuestions);
             }
@@ -1610,16 +1622,13 @@ document.addEventListener('DOMContentLoaded', function() {
             break;
             
         case 'interview':
-            console.log('🎤 Interview page initialized');
-            
-            // Load questions from session storage
+            console.log('Interview page');
             if (!loadInterviewData()) {
                 alert('No questions found. Please generate questions first.');
                 window.location.href = 'home.html';
                 return;
             }
             
-            // Show initial state
             if (currentQuestion) {
                 currentQuestion.textContent = 'Ready for your interview. Click "Start Interview" to begin.';
             }
@@ -1636,7 +1645,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 endInterviewBtn.style.display = 'none';
             }
             
-            // Event listeners
             if (startInterviewBtn) {
                 startInterviewBtn.addEventListener('click', startInterview);
             }
@@ -1648,9 +1656,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (nextQuestionBtn) {
                 nextQuestionBtn.addEventListener('click', function() {
-                    if (!this.disabled) {
-                        showNextQuestion();
-                    }
+                    if (!this.disabled) showNextQuestion();
                 });
             }
             if (endInterviewBtn) {
@@ -1663,25 +1669,15 @@ document.addEventListener('DOMContentLoaded', function() {
             break;
             
         case 'results':
-            console.log('Results page initialized');
-            
-            // Load results data
+            console.log('Results page');
             if (!loadResultsData()) {
                 alert('No interview data found. Please complete an interview first.');
                 window.location.href = 'home.html';
                 return;
             }
-            
-            // Display results
             displayFullResults();
-            
-            // Show feedback button
             if (getFeedbackBtn) {
                 getFeedbackBtn.style.display = 'inline-block';
-            }
-            
-            // Event listeners
-            if (getFeedbackBtn) {
                 getFeedbackBtn.addEventListener('click', getFeedback);
             }
             if (exportPdfBtn) {
@@ -1690,25 +1686,18 @@ document.addEventListener('DOMContentLoaded', function() {
             break;
             
         case 'faq':
-            console.log('❓ FAQ page initialized');
-            
-            // FAQ accordion
+            console.log('❓ FAQ page');
             document.querySelectorAll('.faq-question').forEach(button => {
                 button.addEventListener('click', function() {
                     const item = this.closest('.faq-item');
                     if (!item) return;
-                    
                     const isOpen = item.classList.contains('open');
-                    
                     const category = item.closest('.faq-category');
                     if (category) {
                         category.querySelectorAll('.faq-item').forEach(other => {
-                            if (other !== item) {
-                                other.classList.remove('open');
-                            }
+                            if (other !== item) other.classList.remove('open');
                         });
                     }
-                    
                     if (isOpen) {
                         item.classList.remove('open');
                     } else {
@@ -1719,6 +1708,37 @@ document.addEventListener('DOMContentLoaded', function() {
             break;
     }
 });
+
+// ============================================
+// PRIVACY MODAL FUNCTIONS
+// ============================================
+
+function checkPrivacyConsent() {
+    const hasAccepted = localStorage.getItem('privacyConsent');
+    const modal = document.getElementById('privacyModal');
+    
+    console.log('Privacy check:', hasAccepted ? 'Accepted' : 'Not accepted');
+    
+    // Force show if not accepted
+    if (!hasAccepted && modal) {
+        modal.style.display = 'flex';
+        modal.style.visibility = 'visible';
+        modal.style.opacity = '1';
+        console.log('Modal shown');
+    } else if (modal) {
+        modal.style.display = 'none';
+        console.log('Modal hidden');
+    }
+}
+
+function acceptPrivacy() {
+    localStorage.setItem('privacyConsent', 'true');
+    const modal = document.getElementById('privacyModal');
+    if (modal) {
+        modal.style.display = 'none';
+        console.log('Privacy accepted');
+    }
+}
 
 // ============================================
 // KEYBOARD SHORTCUTS
@@ -1757,206 +1777,21 @@ document.addEventListener('keydown', function(event) {
 // ============================================
 // FALLBACK: Direct click handler for Start Interview
 // ============================================
-function setupStartInterviewFallback() {
+setTimeout(function() {
     const btn = document.getElementById('goToInterviewBtn');
     if (btn) {
-        console.log('Fallback: Start Interview button found');
         btn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('Fallback: Start Interview clicked!');
             window.location.href = 'interview.html';
         });
     }
-}
+}, 300);
 
 // ============================================
-// INITIALIZATION — SINGLE DOMContentLoaded
-// ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    const page = getCurrentPage();
-    
-    // --- Privacy Modal ---
-    // Show modal after a tiny delay (ensures DOM is ready)
-    setTimeout(function() {
-        checkPrivacyConsent();
-    }, 100);
-    
-    const acceptBtn = document.getElementById('acceptPrivacyBtn');
-    if (acceptBtn) {
-        acceptBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            acceptPrivacy();
-        });
-        console.log('Accept button listener attached');
-    } else {
-        console.warn('Accept button not found in DOM');
-    }
-    
-    // --- Page-specific logic ---
-    switch(page) {
-        case 'index':
-            console.log('Landing page initialized');
-            break;
-            
-        case 'home':
-            console.log('App page initialized');
-            if (generateBtn) {
-                generateBtn.addEventListener('click', generateQuestions);
-            }
-            if (goToInterviewBtn) {
-                goToInterviewBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    window.location.href = 'interview.html';
-                });
-            }
-            break;
-            
-        case 'interview':
-            console.log('Interview page initialized');
-            
-            // Load questions from session storage
-            if (!loadInterviewData()) {
-                alert('No questions found. Please generate questions first.');
-                window.location.href = 'home.html';
-                return;
-            }
-            
-            // Show initial state
-            if (currentQuestion) {
-                currentQuestion.textContent = 'Ready for your interview. Click "Start Interview" to begin.';
-            }
-            if (questionCounter) {
-                questionCounter.textContent = 'Ready to start';
-            }
-            if (startInterviewBtn) {
-                startInterviewBtn.style.display = 'inline-block';
-            }
-            if (nextQuestionBtn) {
-                nextQuestionBtn.style.display = 'none';
-            }
-            if (endInterviewBtn) {
-                endInterviewBtn.style.display = 'none';
-            }
-            
-            // Event listeners
-            if (startInterviewBtn) {
-                startInterviewBtn.addEventListener('click', startInterview);
-            }
-            if (startListeningBtn) {
-                startListeningBtn.addEventListener('click', startListening);
-            }
-            if (stopListeningBtn) {
-                stopListeningBtn.addEventListener('click', stopListening);
-            }
-            if (nextQuestionBtn) {
-                nextQuestionBtn.addEventListener('click', function() {
-                    if (!this.disabled) {
-                        showNextQuestion();
-                    }
-                });
-            }
-            if (endInterviewBtn) {
-                endInterviewBtn.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to end the interview early?')) {
-                        endInterviewEarly();
-                    }
-                });
-            }
-            break;
-            
-        case 'results':
-            console.log('Results page initialized');
-            
-            // Load results data
-            if (!loadResultsData()) {
-                alert('No interview data found. Please complete an interview first.');
-                window.location.href = 'home.html';
-                return;
-            }
-            
-            // Display results
-            displayFullResults();
-            
-            // Show feedback button
-            if (getFeedbackBtn) {
-                getFeedbackBtn.style.display = 'inline-block';
-            }
-            
-            // Event listeners
-            if (getFeedbackBtn) {
-                getFeedbackBtn.addEventListener('click', getFeedback);
-            }
-            if (exportPdfBtn) {
-                exportPdfBtn.addEventListener('click', exportToPDF);
-            }
-            break;
-            
-        case 'faq':
-            console.log('❓ FAQ page initialized');
-            
-            // FAQ accordion
-            document.querySelectorAll('.faq-question').forEach(button => {
-                button.addEventListener('click', function() {
-                    const item = this.closest('.faq-item');
-                    if (!item) return;
-                    
-                    const isOpen = item.classList.contains('open');
-                    
-                    const category = item.closest('.faq-category');
-                    if (category) {
-                        category.querySelectorAll('.faq-item').forEach(other => {
-                            if (other !== item) {
-                                other.classList.remove('open');
-                            }
-                        });
-                    }
-                    
-                    if (isOpen) {
-                        item.classList.remove('open');
-                    } else {
-                        item.classList.add('open');
-                    }
-                });
-            });
-            break;
-    }
-    
-    // --- Start Interview Fallback (for home page) ---
-    setupStartInterviewFallback();
-});
-
-// ============================================
-// PRIVACY MODAL — FIXED VERSION
+// INITIALIZATION LOG
 // ============================================
 
-function checkPrivacyConsent() {
-    const hasAccepted = localStorage.getItem('privacyConsent');
-    const modal = document.getElementById('privacyModal');
-    
-    console.log('Checking privacy consent:', hasAccepted ? 'Accepted' : 'Not accepted');
-    
-    if (!hasAccepted && modal) {
-        modal.style.display = 'flex';
-        console.log('Modal shown');
-    } else if (modal) {
-        modal.style.display = 'none';
-        console.log('Modal hidden (already accepted)');
-    }
-}
-
-function acceptPrivacy() {
-    localStorage.setItem('privacyConsent', 'true');
-    const modal = document.getElementById('privacyModal');
-    if (modal) {
-        modal.style.display = 'none';
-        console.log('Privacy accepted, modal hidden');
-    }
-}
-
-// ============================================
-// INITIALIZATION
-// ============================================
-console.log('Interview Coach - Multi-Page Ready!');
+console.log('Interview Coach - Ready!');
 console.log(`Current page: ${getCurrentPage()}`);
-console.log('API key is loaded from configuration.');
-console.log('Camera focus tracking is integrated into feedback.');
+console.log('API key is on the server');
+console.log('Camera focus tracking integrated');
