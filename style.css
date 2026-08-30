@@ -3,36 +3,36 @@
    ============================================ */
 
 :root {
-    /* Primary — Deep Navy */
-    --primary: #0A1628;
-    --primary-light: #1A2A4A;
-    --primary-lighter: #2A3A5A;
+    /* Primary — Deep Navy (Dark) */
+    --primary: #1F2937;
+    --primary-light: #2D3748;
+    --primary-lighter: #3D4A5C;
     
     /* Accent — Refined Gold */
     --accent: #C9A84C;
     --accent-hover: #B8963A;
-    --accent-light: #F5EDD6;
+    --accent-light: #2A2416;
     
-    /* Neutrals */
-    --bg: #F5F6F8;
-    --surface: #FFFFFF;
-    --surface-alt: #F0F1F3;
-    --border: #E2E4E8;
-    --border-dark: #C5C8CE;
+    /* Neutrals — Dark */
+    --bg: #0D1117;
+    --surface: #161B22;
+    --surface-alt: #1C2333;
+    --border: #30363D;
+    --border-dark: #484F58;
     
-    /* Text */
-    --text-primary: #0A1628;
-    --text-secondary: #3D4A5C;
-    --text-muted: #7A8798;
+    /* Text — Light (for dark background) */
+    --text-primary: #F0F6FC;
+    --text-secondary: #8B949E;
+    --text-muted: #6E7681;
     --text-white: #FFFFFF;
     
     /* Status */
     --success: #1A7A4A;
-    --success-light: #E6F4EC;
+    --success-light: #0F3A2A;
     --warning: #B8860B;
-    --warning-light: #FDF3E0;
+    --warning-light: #2A2416;
     --danger: #B22222;
-    --danger-light: #FDE8E8;
+    --danger-light: #3A0F0F;
     
     /* Spacing */
     --space-xs: 4px;
@@ -53,10 +53,10 @@
     --border-focus: 2px;
     
     /* Shadows */
-    --shadow-sm: 0 1px 2px rgba(10, 22, 40, 0.04);
-    --shadow-md: 0 2px 8px rgba(10, 22, 40, 0.06);
-    --shadow-lg: 0 8px 32px rgba(10, 22, 40, 0.08);
-    --shadow-xl: 0 16px 48px rgba(10, 22, 40, 0.12);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.5);
     
     /* Transitions */
     --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
