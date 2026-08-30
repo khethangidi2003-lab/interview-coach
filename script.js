@@ -811,14 +811,14 @@ function getCameraSummary() {
 }
 
 async function getFeedback() {
-showLoading('Analyzing Your Interview...', 'This takes about 5-10 seconds');
+    // 🔥 SHOW LOADING
+    showLoading('Analyzing Your Interview...', 'This takes about 5-10 seconds');
 
-    // ✅ Call your Vercel serverless API (NO API KEY HERE!)
     if (getFeedbackBtn) {
         getFeedbackBtn.disabled = true;
         getFeedbackBtn.textContent = 'Analyzing...';
     }
-    
+
     if (feedbackContent) {
         feedbackContent.innerHTML = `
             <div class="feedback-loading">
@@ -829,7 +829,7 @@ showLoading('Analyzing Your Interview...', 'This takes about 5-10 seconds');
         `;
     }
     if (feedbackSection) feedbackSection.style.display = 'block';
-    
+
     try {
         let transcript = '';
         interviewState.questions.forEach((question, index) => {
@@ -837,16 +837,16 @@ showLoading('Analyzing Your Interview...', 'This takes about 5-10 seconds');
             transcript += `Q${index + 1}: ${question}\n`;
             transcript += `A${index + 1}: ${answer}\n\n`;
         });
-        
+
         const cameraSummary = getCameraSummary();
-        
+
         let cameraInsights = '';
         if (cameraSummary.totalFrames > 0) {
             const gazeTotal = Object.values(cameraSummary.gazeDistribution).reduce((a, b) => a + b, 0);
             const gazePercent = gazeTotal > 0 
                 ? Math.round((cameraSummary.gazeDistribution.center / gazeTotal) * 100) 
                 : 0;
-            
+
             cameraInsights = `
 Camera/Body Language Data:
 - Average Focus Score: ${cameraSummary.averageFocus}% (100% = perfect eye contact)
@@ -861,7 +861,7 @@ Camera/Body Language Data:
         } else {
             cameraInsights = 'No camera data available. Camera may not have been active during the interview.';
         }
-        
+
         const prompt = `
 You are an expert interview coach. Analyze this interview transcript AND camera/body language data to provide comprehensive feedback.
 
@@ -886,8 +886,7 @@ Provide feedback including the following sections. Format as JSON:
 
 Be honest but constructive. If camera data is available, incorporate it into the bodyLanguage and overall assessment.
 `;
-        
-        // ✅ Call your Vercel serverless API (NO API KEY HERE!)
+
         const response = await fetch('/api/groq', {
             method: 'POST',
             headers: {
@@ -909,20 +908,20 @@ Be honest but constructive. If camera data is available, incorporate it into the
                 max_tokens: 1024
             })
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error?.message || 'Failed to get feedback');
         }
-        
+
         const data = await response.json();
         const aiMessage = data.choices[0].message.content;
-        
+
         let cleanedMessage = aiMessage;
         cleanedMessage = cleanedMessage.replace(/```json\s*/g, '');
         cleanedMessage = cleanedMessage.replace(/```\s*/g, '');
         cleanedMessage = cleanedMessage.trim();
-        
+
         let feedback;
         try {
             feedback = JSON.parse(cleanedMessage);
@@ -938,13 +937,17 @@ Be honest but constructive. If camera data is available, incorporate it into the
                 throw new Error('Could not parse feedback. Please try again.');
             }
         }
-        
+
         feedback._cameraSummary = cameraSummary;
         displayFeedback(feedback);
         if (exportPdfBtn) exportPdfBtn.style.display = 'inline-block';
-        
+
+        // ✅ HIDE LOADING — SUCCESS
+        hideLoading();
+
     } catch (error) {
         console.error('Feedback error:', error);
+        // ✅ HIDE LOADING — ERROR
         hideLoading();
         if (feedbackContent) {
             feedbackContent.innerHTML = `
@@ -966,9 +969,7 @@ Be honest but constructive. If camera data is available, incorporate it into the
             getFeedbackBtn.textContent = 'Get Feedback';
         }
     }
-
 }
-hideLoading();
 
 function displayFeedback(feedback) {
     let scoreClass = 'average';
