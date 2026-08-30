@@ -1794,31 +1794,50 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================
-// PRIVACY MODAL
+// PRIVACY MODAL — SIMPLIFIED
 // ============================================
 
+// Check if user has accepted privacy policy
 function checkPrivacyConsent() {
-    // Check if user has already accepted
     const hasAccepted = localStorage.getItem('privacyConsent');
+    const modal = document.getElementById('privacyModal');
     
-    if (!hasAccepted) {
-        const modal = document.getElementById('privacyModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-        }
+    if (!hasAccepted && modal) {
+        modal.style.display = 'flex';  // ← Using style.display instead of class
+    } else if (modal) {
+        modal.style.display = 'none';
     }
 }
 
+// Accept privacy policy
 function acceptPrivacy() {
-    // Save consent in localStorage
     localStorage.setItem('privacyConsent', 'true');
-    
-    // Hide the modal
     const modal = document.getElementById('privacyModal');
     if (modal) {
-        modal.classList.add('hidden');
+        modal.style.display = 'none';
     }
+    console.log('✅ Privacy consent accepted');
 }
+
+// 🔥 Auto-run when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Small delay to ensure DOM is ready
+    setTimeout(function() {
+        checkPrivacyConsent();
+    }, 100);
+    
+    // Accept button click handler (direct)
+    const acceptBtn = document.getElementById('acceptPrivacyBtn');
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            acceptPrivacy();
+        });
+        console.log('✅ Accept button listener attached');
+    } else {
+        console.warn('⚠️ Accept button not found');
+    }
+});
 // ============================================
 // INITIALIZATION
 // ============================================
