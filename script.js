@@ -1794,6 +1794,32 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================
+// PRIVACY MODAL
+// ============================================
+
+function checkPrivacyConsent() {
+    // Check if user has already accepted
+    const hasAccepted = localStorage.getItem('privacyConsent');
+    
+    if (!hasAccepted) {
+        const modal = document.getElementById('privacyModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+}
+
+function acceptPrivacy() {
+    // Save consent in localStorage
+    localStorage.setItem('privacyConsent', 'true');
+    
+    // Hide the modal
+    const modal = document.getElementById('privacyModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+// ============================================
 // INITIALIZATION
 // ============================================
 console.log('Interview Coach - Multi-Page Ready!');
