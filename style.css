@@ -187,12 +187,14 @@ body {
     border-radius: var(--radius-sm);
 }
 
+/* ============================================
+   NAVIGATION — Mobile Friendly
+   ============================================ */
+
 .nav-links {
     display: flex;
     gap: var(--space-md);
     align-items: center;
-    padding-right: 20px;
-    height: 100%;
 }
 
 .nav-links a {
@@ -200,13 +202,10 @@ body {
     text-decoration: none;
     font-size: 0.85rem;
     font-weight: 500;
-    padding: var(--space-xs) var(--space-sm);
+    padding: 6px 12px;
     border-radius: var(--radius-sm);
     transition: var(--transition);
     border-bottom: 2px solid transparent;
-    display: flex;
-    align-items: center;
-    height: 100%;
 }
 
 .nav-links a:hover {
@@ -217,6 +216,18 @@ body {
 .nav-links a.active {
     color: var(--text-primary);
     border-bottom-color: var(--accent);
+}
+
+/* 🔥 Mobile: Show all links, just smaller */
+@media (max-width: 640px) {
+    .nav-links a {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+    
+    .nav-links {
+        gap: 4px;
+    }
 }
 
 /* ============================================
@@ -766,7 +777,7 @@ textarea {
 }
 
 /* ============================================
-   CAMERA — COMPACT VERSION
+   CAMERA — Compact on Mobile
    ============================================ */
 
 .camera-container {
@@ -774,15 +785,13 @@ textarea {
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-bottom: 12px;
-    max-height: 200px;  /* ← Limit height */
 }
 
-/* Make video smaller */
 .video-wrapper {
     position: relative;
     background: var(--primary);
     aspect-ratio: 16/9;
-    max-height: 180px;  /* ← Limit height */
+    max-height: 180px;
     overflow: hidden;
     border: var(--border-width) solid var(--border);
     border-radius: 4px;
@@ -804,7 +813,6 @@ textarea {
     transform: scaleX(-1);
 }
 
-/* 🔥 Compact focus stats */
 .focus-stats {
     padding: 8px 12px;
     background: var(--surface-alt);
@@ -853,27 +861,79 @@ textarea {
     border-radius: 2px;
 }
 
-/* 🔥 Mobile: Stack camera vertically */
+/* 🔥 MOBILE: Camera stacked, smaller */
 @media (max-width: 640px) {
     .camera-container {
         grid-template-columns: 1fr;
+        gap: 8px;
         max-height: none;
     }
     
     .video-wrapper {
-        max-height: 160px;
+        max-height: 140px;
     }
     
     .focus-stats {
         padding: 6px 10px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 4px 12px;
     }
     
     .stat-item {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         padding: 1px 0;
+        min-width: 60px;
+    }
+    
+    .focus-nudge {
+        font-size: 0.65rem;
+        padding: 3px 6px;
+        width: 100%;
     }
 }
+/* ============================================
+   BUTTONS — Touch-Friendly
+   ============================================ */
 
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: 12px 28px;
+    border: none;
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: all var(--duration) var(--ease);
+    border-radius: var(--radius-sm);
+    min-height: 48px;
+    min-width: 120px;
+}
+
+/* 🔥 Mobile: Full width buttons, larger touch targets */
+@media (max-width: 640px) {
+    .btn {
+        padding: 12px 20px;
+        font-size: 0.85rem;
+        min-height: 44px;  /* ← Apple's minimum touch target */
+        min-width: 80px;
+        width: 100%;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn-group .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
 /* ============================================
    DARK MODE
    ============================================ */
@@ -965,7 +1025,38 @@ textarea {
         border-color: var(--border);
     }
 }
+/* ============================================
+   RESULTS PAGE — Mobile
+   ============================================ */
 
+@media (max-width: 640px) {
+    .feedback-score {
+        font-size: 2rem;
+        padding: 12px;
+    }
+    
+    .feedback-section {
+        padding: 12px 14px;
+    }
+    
+    .feedback-section h4 {
+        font-size: 0.7rem;
+    }
+    
+    .feedback-section li {
+        font-size: 0.8rem;
+    }
+    
+    .question-item {
+        padding: 12px 14px;
+        font-size: 0.85rem;
+    }
+    
+    .question-answer {
+        font-size: 0.8rem;
+        padding: 8px 10px;
+    }
+}
 /* ============================================
    UTILITY
    ============================================ */
@@ -1774,5 +1865,47 @@ textarea {
     
     .privacy-modal-footer {
         padding: 12px 20px 18px;
+    }
+}
+
+/* ============================================
+   INTERVIEW PAGE — Mobile Optimized
+   ============================================ */
+
+#interviewSection {
+    padding: 16px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+@media (max-width: 640px) {
+    #interviewSection {
+        padding: 12px;
+    }
+    
+    /* Question text smaller on mobile */
+    .question-display {
+        font-size: 0.95rem;
+        padding: 14px 16px;
+        line-height: 1.6;
+        min-height: 60px;
+    }
+    
+    /* Answer text smaller */
+    .answer-text {
+        font-size: 0.9rem;
+        padding: 10px 12px;
+        min-height: 40px;
+    }
+    
+    /* Question counter smaller */
+    .question-counter {
+        font-size: 0.7rem;
+        padding: 2px 12px;
+    }
+    
+    .interview-header h3 {
+        font-size: 0.9rem;
     }
 }
