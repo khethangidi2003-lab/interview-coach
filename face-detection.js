@@ -357,9 +357,9 @@ class FaceDetector {
         this.ctx.fillRect(10, 10, 180, 30);
         this.ctx.fillStyle = statusColor;
         this.ctx.font = '14px Arial';
-        const status = this.gazeDirection === 'center' ? 'Looking at camera' : 
-                      this.gazeDirection === 'unknown' ? 'Face not detected' :
-                      `Looking ${this.gazeDirection}`;
+        const status = this.gazeDirection === 'center' ? '✅ Looking at camera' : 
+                      this.gazeDirection === 'unknown' ? '⚠️ Face not detected' :
+                      `👀 Looking ${this.gazeDirection}`;
         this.ctx.fillText(status, 20, 32);
     }
 
@@ -421,14 +421,14 @@ class FaceDetector {
 updateFocusScore() {
     let score = 100;
 
-    // More aggressive penalty for looking away
+    // 🔥 More aggressive penalty for looking away
     if (this.gazeDirection !== 'center' && this.gazeDirection !== 'unknown') {
         // Faster penalty: 5 points per second instead of 0.5
         const penalty = Math.min(40, this.lookingAwayCount * 2);
         score = Math.max(0, score - penalty);
     }
 
-    // Severe penalty for no face detected
+    // 🔥 Severe penalty for no face detected
     if (this.gazeDirection === 'unknown') {
         // Drop quickly when face is missing
         const penalty = Math.min(50, this.lookingAwayCount * 3);
@@ -457,9 +457,9 @@ updateFocusScore() {
             this.lastNudgeTime = now;
             
             let message = '';
-            //if (this.gazeDirection === 'unknown') {
-               // message = "📷 I can't see your face. Please sit in front of the camera.";
-            } if (this.gazeDirection !== 'center') {
+            if (this.gazeDirection === 'unknown') {
+                message = "📷 I can't see your face. Please sit in front of the camera.";
+            } else if (this.gazeDirection !== 'center') {
                 // Specific nudges based on gaze direction
                 const directionMap = {
                     'left': 'Look straight at the camera',
@@ -467,9 +467,9 @@ updateFocusScore() {
                     'up': 'Keep your head level with the camera',
                     'down': 'Lift your head up'
                 };
-                message = `${directionMap[this.gazeDirection] || 'Look at the camera'}`;
+                message = `👀 ${directionMap[this.gazeDirection] || 'Look at the camera'}`;
             } else {
-                message = "Stay focused on the interview.";
+                message = "🎯 Stay focused on the interview.";
             }
 
             if (this.onNudge) {
