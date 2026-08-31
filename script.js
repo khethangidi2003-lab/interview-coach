@@ -1710,24 +1710,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================
-// PRIVACY MODAL FUNCTIONS
+// PRIVACY MODAL — No Blinking!
 // ============================================
 
 function checkPrivacyConsent() {
     const hasAccepted = localStorage.getItem('privacyConsent');
     const modal = document.getElementById('privacyModal');
     
-    console.log('Privacy check:', hasAccepted ? 'Accepted' : 'Not accepted');
+    console.log('🔍 Privacy check:', hasAccepted ? 'Accepted' : 'Not accepted');
     
-    // Force show if not accepted
     if (!hasAccepted && modal) {
-        modal.style.display = 'flex';
-        modal.style.visibility = 'visible';
-        modal.style.opacity = '1';
-        console.log('Modal shown');
+        // 🔥 Show modal using class (smooth, no blink)
+        modal.classList.add('active');
+        console.log('✅ Modal shown');
     } else if (modal) {
-        modal.style.display = 'none';
-        console.log('Modal hidden');
+        modal.classList.remove('active');
+        console.log('❌ Modal hidden');
     }
 }
 
@@ -1735,10 +1733,29 @@ function acceptPrivacy() {
     localStorage.setItem('privacyConsent', 'true');
     const modal = document.getElementById('privacyModal');
     if (modal) {
-        modal.style.display = 'none';
-        console.log('Privacy accepted');
+        modal.classList.remove('active');
+        console.log('✅ Privacy accepted');
     }
 }
+
+// Call when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Show modal after a tiny delay (ensures DOM is ready)
+    setTimeout(function() {
+        checkPrivacyConsent();
+    }, 50);
+    
+    // Accept button
+    const acceptBtn = document.getElementById('acceptPrivacyBtn');
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            acceptPrivacy();
+        });
+        console.log('✅ Accept button ready');
+    }
+});
 
 // ============================================
 // KEYBOARD SHORTCUTS

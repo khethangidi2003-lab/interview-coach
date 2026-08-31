@@ -1647,7 +1647,6 @@ textarea {
 /* ============================================
    PRIVACY MODAL
    ============================================ */
-
 .privacy-modal {
     position: fixed;
     top: 0;
@@ -1656,11 +1655,21 @@ textarea {
     height: 100%;
     background: rgba(10, 22, 40, 0.8);
     backdrop-filter: blur(8px);
-    display: flex;
+    display: none;        /* ← Hidden by default */
+    visibility: hidden;   /* ← No flash */
+    opacity: 0;           /* ← Smooth transition */
     align-items: center;
     justify-content: center;
     z-index: 10000;
     padding: 20px;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Active state — modal becomes visible */
+.privacy-modal.active {
+    display: flex;
+    visibility: visible;
+    opacity: 1;
 }
 
 .privacy-modal-content {
@@ -1741,11 +1750,6 @@ textarea {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-}
-
-/* 🔥 Hide modal by default */
-.privacy-modal.hidden {
-    display: none;
 }
 
 /* Responsive */
