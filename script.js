@@ -124,7 +124,7 @@ async function initFaceDetector() {
         };
         
         faceDetector.onNudge = function(message) {
-            showNudge(message);
+            console.log('Nudge suppressed:', message);
         };
         
         const success = await faceDetector.initialize(videoElement, canvasElement);
@@ -182,11 +182,9 @@ function showNudge(message) {
         }, 4000);
     }
 }
-
 // ============================================
 // SPEECH-TO-TEXT
 // ============================================
-
 let recognition = null;
 
 function initSpeechRecognition() {
