@@ -218,15 +218,54 @@ body {
     border-bottom-color: var(--accent);
 }
 
-/* 🔥 Mobile: Show all links, just smaller */
-@media (max-width: 640px) {
-    .nav-links a {
-        font-size: 0.75rem;
-        padding: 4px 8px;
+/* NAVIGATION BUTTONS — Visible on ALL screens */
+.nav-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-mobile {
+    padding: 6px 14px !important;
+    font-size: 0.8rem !important;
+    min-height: 36px !important;
+    min-width: auto !important;
+    border-radius: 4px !important;
+    border: 1px solid var(--border) !important;
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+    transition: var(--transition) !important;
+}
+
+.btn-mobile:hover {
+    background: var(--surface-alt) !important;
+    border-color: var(--text-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Hide the old desktop home button (not needed anymore) */
+#desktopHomeBtn {
+    display: none !important;
+}
+
+/* Mobile: Keep nav-buttons visible, just smaller */
+@media (max-width: 768px) {
+    .btn-mobile {
+        padding: 4px 10px !important;
+        font-size: 0.7rem !important;
+        min-height: 32px !important;
     }
     
-    .nav-links {
+    .nav-buttons {
         gap: 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn-mobile {
+        padding: 3px 8px !important;
+        font-size: 0.65rem !important;
+        min-height: 28px !important;
     }
 }
 
@@ -1632,43 +1671,6 @@ textarea {
     font-weight: 400;
     color: rgba(255, 255, 255, 0.6);
     margin-top: 6px;
-}
-/* ============================================
-   MOBILE NAVIGATION
-   ============================================ */
-
-.nav-buttons {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.btn-mobile {
-    padding: 6px 12px !important;
-    font-size: 0.75rem !important;
-    min-height: 32px !important;
-    min-width: auto !important;
-    border-radius: 4px !important;
-}
-
-/* 🔥 Show mobile buttons on small screens, hide desktop button */
-@media (max-width: 768px) {
-    .nav-buttons {
-        display: flex !important;
-    }
-    #desktopHomeBtn {
-        display: none !important;
-    }
-}
-
-/* 🔥 Hide mobile buttons on large screens, show desktop button */
-@media (min-width: 769px) {
-    .nav-buttons {
-        display: none !important;
-    }
-    #desktopHomeBtn {
-        display: inline-flex !important;
-    }
 }
 /* ============================================
    PRIVACY MODAL
