@@ -1805,6 +1805,50 @@ setTimeout(function() {
 }, 300);
 
 // ============================================
+// FOOTER LINKS
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Privacy Policy ---
+    const privacyLink = document.getElementById('privacyLink');
+    if (privacyLink) {
+        privacyLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            showPrivacyModal();
+        });
+        console.log('✅ Privacy Policy link ready');
+    }
+
+    // --- Terms of Service (placeholder) ---
+    const termsLink = document.getElementById('termsLink');
+    if (termsLink) {
+        termsLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Terms of Service coming soon.');
+        });
+        console.log('✅ Terms of Service link ready');
+    }
+
+    // --- Contact → LinkedIn ---
+    const contactLink = document.getElementById('contactLink');
+    if (contactLink) {
+        contactLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.open('https://linkedin.com/in/khetha-ngidi-843841399', '_blank');
+        });
+        console.log('✅ Contact link ready');
+    }
+});
+
+// Function to show privacy modal (can be called from anywhere)
+function showPrivacyModal() {
+    const modal = document.getElementById('privacyModal');
+    if (modal) {
+        modal.classList.add('active');
+        console.log('🔒 Privacy modal shown');
+    }
+}
+// ============================================
 // INITIALIZATION LOG
 // ============================================
 
