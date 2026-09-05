@@ -823,7 +823,8 @@ textarea {
     }
     
     .video-wrapper {
-        max-height: 220px;  /* ← Bigger on mobile too */
+        max-height: 280px;  /* ← Increased from 220px */
+        aspect-ratio: 4/3;  /* ← Changed from 16/9 to 4/3 (taller/wider) */
         border-width: 2px;
     }
     
@@ -850,7 +851,8 @@ textarea {
 
 @media (max-width: 480px) {
     .video-wrapper {
-        max-height: 200px;
+        max-height: 320px;  /* ← Increased from 200px */
+        aspect-ratio: 3/4;  /* ← Changed to portrait mode */
     }
     
     .focus-stats {
