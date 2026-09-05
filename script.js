@@ -349,15 +349,11 @@ function speakText(text, callback) {
 }
 
 // ============================================
-// GENERATE QUESTIONS
-// ============================================
-
-// ============================================
 // GENERAL QUESTIONS
 // ============================================
 
 function addGeneralQuestions(aiQuestions) {
-    // 🔥 3 general questions at the START of the interview
+    // 3 general questions at the START of the interview
     const generalQuestions = [
         "Tell me about yourself and your background.",
         "Why do you think you are the best fit for this role?",
@@ -390,13 +386,16 @@ async function generateQuestions() {
     }
     
     try {
+        // ✅ SUPPORTIVE COACH — not an expert
         const prompt = `
-You are an expert HR interviewer. Based on this job description, generate exactly 7 interview questions.
+You are a supportive interview coach helping a candidate prepare for their interview. Based on this job description, generate 7 thoughtful questions that will help the candidate practice and build confidence.
 
 Instructions:
 - 3 behavioral questions (asking about past experiences)
 - 2 technical questions (specific skills for the job)
 - 2 questions about company culture and values
+
+Make the questions clear and encouraging. Avoid overly aggressive or trick questions.
 
 Return ONLY a JSON array of strings. No extra text, no numbering, no bullet points.
 
@@ -417,7 +416,7 @@ ${jobDescription}
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are an expert HR interviewer. You always respond with valid JSON arrays.'
+                        content: 'You are a supportive interview coach. You always respond with valid JSON arrays.'
                     },
                     {
                         role: 'user',
@@ -462,7 +461,7 @@ ${jobDescription}
             throw new Error('The AI did not return a valid list of questions.');
         }
         
-        //QUESTIONS AT THE START
+        // ✅ Add general questions at the START
         interviewState.questions = addGeneralQuestions(questions);
         
         // Store in session storage for interview page
