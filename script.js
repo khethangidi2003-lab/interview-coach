@@ -205,43 +205,52 @@ function initSpeechRecognition() {
     let silenceTimer = null;
     
     recognition.onresult = function(event) {
-        // Reset silence timer when user speaks
-        clearTimeout(silenceTimer);
-        
-        let finalTranscript = '';
-        let interimTranscript = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-                finalTranscript += transcript;
-            } else {
-                interimTranscript += transcript;
-            }
+    // Reset silence timer when user speaks
+    clearTimeout(silenceTimer);
+    
+    let interimTranscript = '';
+    let fullTranscript = '';
+    
+    // Build the full transcript from all results
+    for (let i = 0; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+            // Accumulate all final transcripts
+            fullTranscript += transcript + ' ';
+        } else {
+            interimTranscript = transcript;
         }
+    }
+    
+    // Get the current stored answer and append new final parts
+    const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
+    const combinedAnswer = currentAnswer + fullTranscript;
+    
+    // Show interim results (as user speaks)
+    if (interimTranscript) {
+        answerText.textContent = combinedAnswer + interimTranscript + ' (still listening...)';
+    }
+    
+    // When we have final results, store them
+    if (fullTranscript) {
+        // Store the combined answer
+        interviewState.answers[interviewState.currentIndex] = combinedAnswer.trim();
+        answerText.textContent = combinedAnswer.trim();
         
-        if (interimTranscript) {
-            answerText.textContent = interimTranscript + ' (still listening...)';
+        if (interviewState.isInterviewActive && combinedAnswer.trim()) {
+            setStatus('Answer recorded! Click "Next Question" to continue.', 'success');
+            if (nextQuestionBtn) nextQuestionBtn.disabled = false;
         }
-        
-        if (finalTranscript) {
-            answerText.textContent = finalTranscript;
-            interviewState.answers[interviewState.currentIndex] = finalTranscript;
-            
-            if (interviewState.isInterviewActive) {
-                setStatus('Answer recorded! Click "Next Question" to continue.', 'success');
-                if (nextQuestionBtn) nextQuestionBtn.disabled = false;
-            }
+    }
+    
+    // Auto-stop after 2 seconds of silence
+    silenceTimer = setTimeout(() => {
+        if (interviewState.isListening) {
+            stopListening();
+            setStatus('Stopped listening (silence detected)', '');
         }
-        
-        // Auto-stop after 2 seconds of silence
-        silenceTimer = setTimeout(() => {
-            if (interviewState.isListening) {
-                stopListening();
-                setStatus('Stopped listening (silence detected)', '');
-            }
-        }, 2000);
-    };
+    }, 2000);
+};
     
     recognition.onerror = function(event) {
         console.error('Speech recognition error:', event.error);
