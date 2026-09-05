@@ -971,7 +971,6 @@ function displayFeedback(feedback) {
     let scoreClass = 'average';
     if (feedback.score >= 8) {
         scoreClass = 'excellent';
-        scoreEmoji = '🌟';
     } else if (feedback.score >= 6) {
         scoreClass = 'good';
     } else if (feedback.score >= 4) {
@@ -1006,7 +1005,6 @@ function displayFeedback(feedback) {
                     </div>
                 </div>
                 <div style="margin-top: 8px; display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem;">
-                    <span>Looked away: <strong>${summary.lookingAwayCount}</strong> times</span>
                     ${summary.questionsWithLowFocus.length > 0 ? 
                         `<span style="color: var(--warning);">Questions with focus drop: ${summary.questionsWithLowFocus.map(q => `Q${q.questionIndex + 1}`).join(', ')}</span>` : 
                         `<span style="color: var(--success);">Maintained consistent focus</span>`
@@ -1020,7 +1018,7 @@ function displayFeedback(feedback) {
     if (feedbackContent) {
         feedbackContent.innerHTML = `
             <div class="feedback-score ${scoreClass}">
-               ${feedback.score}/10 — ${feedback.scoreLabel || 'Good'}
+                ${feedback.score}/10 — ${feedback.scoreLabel || 'Good'}
             </div>
             
             ${cameraHTML}
@@ -1033,7 +1031,7 @@ function displayFeedback(feedback) {
             </div>
             
             <div class="feedback-section">
-                <h4>🔧 Areas for Improvement</h4>
+                <h4>Areas for Improvement</h4>
                 <ul>
                     ${feedback.improvements.map(i => `<li class="negative">${i}</li>`).join('')}
                 </ul>
@@ -1046,7 +1044,7 @@ function displayFeedback(feedback) {
             
             <div class="feedback-section">
                 <h4>Did You Answer the Questions?</h4>
-                <p>${feedback.answeredQuestions ? ' Yes' : ' No'}</p>
+                <p>${feedback.answeredQuestions ? 'Yes' : 'No'}</p>
                 <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px;">${feedback.answerExplanation}</p>
             </div>
             
@@ -1056,7 +1054,7 @@ function displayFeedback(feedback) {
             </div>
             
             <div class="feedback-section" style="background: var(--surface-alt); padding: 16px; border-left: 3px solid var(--accent);">
-                <h4 style="color: var(--accent);">💡 Actionable Tip</h4>
+                <h4 style="color: var(--accent);">Actionable Tip</h4>
                 <p>${feedback.tip}</p>
             </div>
         `;
