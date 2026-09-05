@@ -352,6 +352,26 @@ function speakText(text, callback) {
 // GENERATE QUESTIONS
 // ============================================
 
+// ============================================
+// GENERAL QUESTIONS
+// ============================================
+
+function addGeneralQuestions(aiQuestions) {
+    // 🔥 3 general questions at the START of the interview
+    const generalQuestions = [
+        "Tell me about yourself and your background.",
+        "Why do you think you are the best fit for this role?",
+        "What are your greatest professional strengths?"
+    ];
+    
+    // Combine: General questions FIRST, then AI questions
+    return [...generalQuestions, ...aiQuestions];
+}
+
+// ============================================
+// GENERATE QUESTIONS
+// ============================================
+
 async function generateQuestions() {
     const jobDescription = jobDescriptionInput ? jobDescriptionInput.value.trim() : '';
     
@@ -442,14 +462,15 @@ ${jobDescription}
             throw new Error('The AI did not return a valid list of questions.');
         }
         
-        interviewState.questions = questions;
+        //QUESTIONS AT THE START
+        interviewState.questions = addGeneralQuestions(questions);
         
         // Store in session storage for interview page
-        sessionStorage.setItem('interviewQuestions', JSON.stringify(questions));
+        sessionStorage.setItem('interviewQuestions', JSON.stringify(interviewState.questions));
         sessionStorage.setItem('jobDescription', jobDescription);
         
-        // AUTO-REDIRECT TO INTERVIEW PAGE
-        console.log('Auto-redirecting to interview...');
+        console.log(`✅ ${interviewState.questions.length} questions generated (3 general + 7 AI)`);
+        console.log('🔄 Auto-redirecting to interview...');
         hideLoading();
         window.location.href = 'interview.html';
         
