@@ -1020,7 +1020,7 @@ function displayFeedback(feedback) {
     if (feedbackContent) {
         feedbackContent.innerHTML = `
             <div class="feedback-score ${scoreClass}">
-                ${scoreEmoji} ${feedback.score}/10 — ${feedback.scoreLabel || 'Good'}
+               ${feedback.score}/10 — ${feedback.scoreLabel || 'Good'}
             </div>
             
             ${cameraHTML}
