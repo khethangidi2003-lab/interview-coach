@@ -1074,20 +1074,22 @@ function displayFeedback(feedback) {
 // ============================================
 // PDF EXPORT
 // ============================================
-const REPORT_LOGO = ''; // <- paste a data:image/png;base64,... string here
 
 async function exportToPDF() {
     showLoading('Generating PDF...', 'This takes about 3-5 seconds');
-    if (exportPdfBtn) { exportPdfBtn.textContent = 'Generating PDF...'; exportPdfBtn.disabled = true; }
+    if (exportPdfBtn) { 
+        exportPdfBtn.textContent = 'Generating PDF...'; 
+        exportPdfBtn.disabled = true; 
+    }
 
     try {
-        let totalFocus = 0, focusCount = 0, totalLookedAway = 0;
+        // 🔥 Calculate focus stats (no gaze/lookaway)
+        let totalFocus = 0, focusCount = 0;
         (interviewState.focusData || []).forEach(d => {
             if (d?.focusScores?.length) {
                 totalFocus += d.focusScores.reduce((a, b) => a + b, 0) / d.focusScores.length;
                 focusCount++;
             }
-            if (d?.gazeEvents) totalLookedAway += d.gazeEvents.length;
         });
 
         const avgFocus = focusCount ? Math.round(totalFocus / focusCount) : 0;
@@ -1096,17 +1098,41 @@ async function exportToPDF() {
         const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
         const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
+        // 🔥 Convert logo to base64 if it's a file path
+        // You can either: 
+        // 1. Use a data URI directly: const REPORT_LOGO = 'data:image/png;base64,...';
+        // 2. Or load it dynamically (recommended below)
+
+        let logoHTML = '';
+        try {
+            // Try to load the logo as base64
+            const logoResponse = await fetch('logo.png');
+            if (logoResponse.ok) {
+                const blob = await logoResponse.blob();
+                const reader = new FileReader();
+                const logoData = await new Promise((resolve) => {
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+                logoHTML = `<img src="${logoData}" alt="Interview Coach" style="height:36px; width:auto;">`;
+            }
+        } catch (e) {
+            console.warn('Logo not loaded:', e);
+            // Fallback: show text only
+            logoHTML = '';
+        }
+
         let html = `
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
   .rpt * { margin:0; padding:0; box-sizing:border-box; }
   .rpt { font-family:'Inter',Arial,sans-serif; color:#0A1628; background:#fff; width:800px; padding:56px 64px; -webkit-font-smoothing:antialiased; }
-  .rpt-head { display:flex; justify-content:space-between; align-items:flex-end; padding-bottom:18px; border-bottom:1px solid #0A1628; }
-  .rpt-brand { display:flex; align-items:center; gap:12px; }
-  .rpt-brand img { height:36px; width:auto; }
-  .rpt-brand .name { font-size:19px; font-weight:600; letter-spacing:-.02em; }
+  .rpt-head { display:flex; justify-content:space-between; align-items:center; padding-bottom:18px; border-bottom:1px solid #0A1628; }
+  .rpt-head-left { display:flex; align-items:center; gap:12px; }
+  .rpt-head-left .name { font-size:19px; font-weight:600; letter-spacing:-.02em; }
   .rpt-kicker { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#8A94A3; }
   .rpt-meta { text-align:right; font-size:11px; color:#8A94A3; line-height:1.6; }
+  .rpt-logo { height:36px; width:auto; display:block; }
 
   .rpt-stats { display:flex; gap:48px; padding:26px 0 30px; border-bottom:1px solid #E6E8EC; }
   .rpt-stat .v { font-size:32px; font-weight:300; letter-spacing:-.03em; line-height:1; }
@@ -1117,7 +1143,7 @@ async function exportToPDF() {
   .rpt-q:last-child { border-bottom:none; }
   .rpt-q .n { font-size:10px; letter-spacing:.12em; color:#B0B7C2; }
   .rpt-q .q { font-size:14px; font-weight:600; line-height:1.5; margin:4px 0 8px; }
-  .rpt-q .a { font-size:13px; line-height:1.75; color:#44506180; color:#445061; }
+  .rpt-q .a { font-size:13px; line-height:1.75; color:#445061; }
   .rpt-q .a.empty { color:#A3ABB8; font-style:italic; }
   .rpt-q .f { margin-top:10px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:#8A94A3; }
   .rpt-q .f b { font-weight:600; color:#0A1628; }
@@ -1131,11 +1157,11 @@ async function exportToPDF() {
 </style>
 <div class="rpt">
   <div class="rpt-head">
-    <div>
-      <div class="rpt-kicker">Interview Report</div>
-      <div class="rpt-brand" style="margin-top:6px">
-        ${REPORT_LOGO ? `<img src="${REPORT_LOGO}" alt="">` : ''}
-        <span class="name">InterviewCoach</span>
+    <div class="rpt-head-left">
+      ${logoHTML}
+      <div>
+        <div class="rpt-kicker">Interview Report</div>
+        <div class="name">InterviewCoach</div>
       </div>
     </div>
     <div class="rpt-meta">${dateStr}<br>${answered} of ${total} answered</div>
@@ -1144,11 +1170,11 @@ async function exportToPDF() {
   <div class="rpt-stats">
     <div class="rpt-stat"><div class="v">${avgFocus}%</div><div class="k">Average focus</div></div>
     <div class="rpt-stat"><div class="v">${answered}<span style="color:#C3C9D2">/${total}</span></div><div class="k">Questions answered</div></div>
-    <div class="rpt-stat"><div class="v">${totalLookedAway}</div><div class="k">Times looked away</div></div>
   </div>
 
   <div class="rpt-h2">Questions &amp; Answers</div>`;
 
+        // 🔥 Questions and answers (NO gaze/lookaway)
         interviewState.questions.forEach((question, i) => {
             const answer = interviewState.answers[i] || '';
             const has = !!answer.trim();
@@ -1156,8 +1182,7 @@ async function exportToPDF() {
             let focus = '';
             if (d) {
                 const f = d.focusScores?.length ? Math.round(d.focusScores.reduce((a, b) => a + b, 0) / d.focusScores.length) : 0;
-                const away = d.gazeEvents?.length || 0;
-                focus = `<div class="f">Focus <b>${f}%</b>${away ? ` &nbsp;·&nbsp; ${away} look${away > 1 ? 's' : ''} away` : ''}</div>`;
+                focus = `<div class="f">Focus: <b>${f}%</b></div>`;
             }
             html += `
   <div class="rpt-q">
@@ -1168,6 +1193,7 @@ async function exportToPDF() {
   </div>`;
         });
 
+        // 🔥 AI Feedback (NO gaze/lookaway)
         if (feedbackContent?.innerHTML) {
             const scoreEl = feedbackContent.querySelector('.feedback-score');
             const sections = feedbackContent.querySelectorAll('.feedback-section');
@@ -1178,6 +1204,13 @@ async function exportToPDF() {
                     const title = section.querySelector('h4');
                     const content = section.querySelector('p, ul');
                     if (!title || !content) return;
+                    
+                    // Skip sections with "gaze" or "look away" in the title
+                    const titleText = title.textContent.toLowerCase();
+                    if (titleText.includes('gaze') || titleText.includes('look away') || titleText.includes('eye contact')) {
+                        return;
+                    }
+                    
                     const body = content.tagName === 'UL'
                         ? `<ul>${[...content.querySelectorAll('li')].map(li => `<li>${esc(li.textContent)}</li>`).join('')}</ul>`
                         : `<p>${esc(content.textContent)}</p>`;
@@ -1203,8 +1236,7 @@ async function exportToPDF() {
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pw = pdf.internal.pageSize.getWidth();
         const ph = pdf.internal.pageSize.getHeight();
-        const imgH = (canvas.height * pw) / canvas.width;   // full image height in mm
-        const pageCanvasH = (canvas.width * ph) / pw;        // slice height in px
+        const pageCanvasH = (canvas.width * ph) / pw;
 
         let rendered = 0, page = 0;
         while (rendered < canvas.height) {
