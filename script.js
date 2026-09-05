@@ -1238,10 +1238,10 @@ async function exportToPDF() {
         const pageHeight = pdf.internal.pageSize.getHeight();
         
         // Margins (in mm)
-        const marginTop = 20;
-        const marginBottom = 20;
-        const marginLeft = 18;
-        const marginRight = 18;
+        const marginTop = 14;
+        const marginBottom = 14;
+        const marginLeft = 12;
+        const marginRight = 12;
         const contentWidth = pageWidth - marginLeft - marginRight;
         const contentHeight = pageHeight - marginTop - marginBottom;
 
