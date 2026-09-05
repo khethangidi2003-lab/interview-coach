@@ -391,20 +391,39 @@ async function generateQuestions() {
     
     try {
         const prompt = `
-You are an expert HR interviewer. Based on this job description, generate exactly 7 interview questions.
+You are a supportive interview coach helping a candidate improve their interview skills. Analyze this interview transcript and provide constructive, encouraging feedback.
 
-Instructions:
-- 3 behavioral questions (asking about past experiences)
-- 2 technical questions (specific skills for the job)
-- 2 questions about company culture and values
+Guidelines:
+- Be encouraging and supportive — the candidate is learning
+- Highlight strengths first
+- Offer suggestions as opportunities, not criticisms
+- Filler words (um, uh, like) are normal in natural speech — only mention if excessive
+- Don't expect perfect STAR format — look for genuine, thoughtful answers
+- The goal is to help the candidate feel confident and improve gradually
+- Keep feedback concise and actionable
+- Give specific examples from the transcript
 
-Return ONLY a JSON array of strings. No extra text, no numbering, no bullet points.
+${cameraInsights}
 
-Example format: ["Question 1", "Question 2", "Question 3"]
+Interview Transcript:
+${transcript}
 
-Job Description:
-${jobDescription}
-        `.trim();
+Provide feedback including the following sections. Format as JSON:
+{
+    "score": 8,
+    "scoreLabel": "Good",
+    "strengths": ["Strength 1", "Strength 2", "Strength 3"],
+    "improvements": ["Improvement 1", "Improvement 2", "Improvement 3"],
+    "communication": "Assessment of communication skills",
+    "answeredQuestions": true/false,
+    "answerExplanation": "Brief explanation",
+    "fillerAnalysis": "Analysis of filler word usage — be gentle, it's normal",
+    "bodyLanguage": "Assessment of body language and presence",
+    "tip": "One actionable tip"
+}
+
+Be encouraging, specific, and constructive.
+`.trim();
         
         // Call your Vercel serverless API (NO API KEY HERE!)
         const response = await fetch('/api/groq', {
