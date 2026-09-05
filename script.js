@@ -1083,7 +1083,7 @@ async function exportToPDF() {
     }
 
     try {
-        // 🔥 Calculate focus stats (no gaze/lookaway)
+        // 🔥 Calculate focus stats (NO gaze/lookaway)
         let totalFocus = 0, focusCount = 0;
         (interviewState.focusData || []).forEach(d => {
             if (d?.focusScores?.length) {
@@ -1098,15 +1098,11 @@ async function exportToPDF() {
         const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
         const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
-        // 🔥 Convert logo to base64 if it's a file path
-        // You can either: 
-        // 1. Use a data URI directly: const REPORT_LOGO = 'data:image/png;base64,...';
-        // 2. Or load it dynamically (recommended below)
-
+        // 🔥 Load logo from the same folder (browserLogo.png or logo.png)
         let logoHTML = '';
         try {
-            // Try to load the logo as base64
-            const logoResponse = await fetch('logo.png');
+            // Try loading browserLogo.png first (the favicon)
+            const logoResponse = await fetch('browserLogo.png');
             if (logoResponse.ok) {
                 const blob = await logoResponse.blob();
                 const reader = new FileReader();
@@ -1114,11 +1110,22 @@ async function exportToPDF() {
                     reader.onload = () => resolve(reader.result);
                     reader.readAsDataURL(blob);
                 });
-                logoHTML = `<img src="${logoData}" alt="Interview Coach" style="height:36px; width:auto;">`;
+                logoHTML = `<img src="${logoData}" alt="Interview Coach" style="height:36px; width:auto; display:block;">`;
+            } else {
+                // Fallback: try logo.png
+                const fallbackResponse = await fetch('logo.png');
+                if (fallbackResponse.ok) {
+                    const blob = await fallbackResponse.blob();
+                    const reader = new FileReader();
+                    const logoData = await new Promise((resolve) => {
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                    logoHTML = `<img src="${logoData}" alt="Interview Coach" style="height:36px; width:auto; display:block;">`;
+                }
             }
         } catch (e) {
-            console.warn('Logo not loaded:', e);
-            // Fallback: show text only
+            console.warn('Logo not loaded, using text only:', e);
             logoHTML = '';
         }
 
