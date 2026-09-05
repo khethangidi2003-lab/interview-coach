@@ -721,21 +721,34 @@ function displayFullResults() {
     questionsContainer.innerHTML = '';
     
     if (!interviewState.questions || interviewState.questions.length === 0) {
-        questionsContainer.innerHTML = '<p style="color: var(--text-secondary);">No questions available.</p>';
+        questionsContainer.innerHTML = '<p class="no-answer" style="text-align:center;padding:40px 0;">No questions available.</p>';
         return;
+    }
+    
+    // Set the date
+    const dateEl = document.getElementById('resultsDate');
+    if (dateEl) {
+        dateEl.textContent = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
     }
     
     interviewState.questions.forEach((question, index) => {
         const div = document.createElement('div');
         div.className = 'question-item';
         
-        // FOCUS DATA REMOVED — only shows question and answer
+        const answer = interviewState.answers[index] || '';
+        const hasAnswer = answer && answer.trim() !== '';
+        
         div.innerHTML = `
-            <div>
-                <strong><span class="question-number">${index + 1}.</span> ${question}</strong>
-                <div class="question-answer">
-                    Your answer: ${interviewState.answers[index] || '(No answer provided)'}
-                </div>
+            <div class="question-text">
+                <span class="question-number">${index + 1}.</span> ${question}
+            </div>
+            <div class="question-answer">
+                <span class="answer-label">Answer:</span>
+                ${hasAnswer ? answer : '<span class="no-answer">No answer provided</span>'}
             </div>
         `;
         questionsContainer.appendChild(div);

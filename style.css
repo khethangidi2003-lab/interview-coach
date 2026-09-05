@@ -573,56 +573,123 @@ textarea {
 }
 
 /* ============================================
-   RESULTS
+   RESULTS — Clean Professional Report
    ============================================ */
 
+.results-section {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 2px solid var(--border);
+}
+
+.results-header h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.results-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
 .questions-container {
-    margin-top: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
 }
 
 .question-item {
-    padding: var(--space-md);
-    background: var(--surface-alt);
-    margin-bottom: var(--space-sm);
-    border-left: 2px solid var(--border);
-    transition: border-color var(--duration) var(--ease);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: var(--transition);
 }
 
 .question-item:hover {
-    border-left-color: var(--primary);
+    border-color: var(--border-dark);
 }
 
 .question-number {
     font-weight: 600;
-    color: var(--text-secondary);
+    color: var(--accent);
     margin-right: var(--space-sm);
 }
 
-.question-answer {
-    margin-top: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    background: var(--surface);
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    border: var(--border-width) solid var(--border);
+.question-text {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin-bottom: var(--space-xs);
 }
 
-/* ============================================
-   FEEDBACK
-   ============================================ */
+.question-answer {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    padding-left: var(--space-md);
+    border-left: 2px solid var(--border);
+    margin-top: var(--space-xs);
+    padding-top: var(--space-xs);
+    padding-bottom: var(--space-xs);
+    line-height: 1.7;
+}
+
+.question-answer .answer-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    display: inline-block;
+    margin-right: var(--space-xs);
+}
+
+.no-answer {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+/* 🔥 Feedback */
+.feedback-divider {
+    margin: var(--space-xl) 0 var(--space-lg);
+    border-top: 2px solid var(--border);
+}
+
+.feedback-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-md);
+}
 
 .feedback-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
     padding: var(--space-lg);
-    background: var(--surface-alt);
-    border: var(--border-width) solid var(--border);
 }
 
 .feedback-score {
-    font-size: 3.5rem;
+    font-size: 2.5rem;
     font-weight: 300;
     text-align: center;
-    padding: var(--space-lg);
-    margin-bottom: var(--space-lg);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    border-radius: 4px;
     letter-spacing: -0.02em;
 }
 
@@ -632,9 +699,8 @@ textarea {
 }
 
 .feedback-score.good {
-    color: var(--primary);
-    background: var(--primary-light);
-    color: var(--text-white);
+    color: var(--accent);
+    background: var(--accent-light);
 }
 
 .feedback-score.average {
@@ -649,9 +715,10 @@ textarea {
 
 .feedback-section {
     padding: var(--space-md);
-    background: var(--surface);
-    border: var(--border-width) solid var(--border);
-    margin-bottom: var(--space-md);
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: var(--space-sm);
 }
 
 .feedback-section:last-child {
@@ -659,22 +726,25 @@ textarea {
 }
 
 .feedback-section h4 {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-muted);
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-xs);
 }
 
 .feedback-section ul {
     list-style: none;
     padding: 0;
+    margin: 0;
 }
 
 .feedback-section li {
     padding: var(--space-xs) 0;
     font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
 }
 
 .feedback-section .positive {
@@ -685,25 +755,60 @@ textarea {
     color: var(--danger);
 }
 
-.feedback-loading {
-    text-align: center;
-    padding: var(--space-2xl) var(--space-lg);
-    color: var(--text-muted);
+.feedback-section p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0;
 }
 
-.spinner {
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    border: 2px solid var(--border);
-    border-top: 2px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin-bottom: var(--space-md);
+/* 🔥 Results Actions */
+.results-actions {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    margin-top: var(--space-lg);
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
+/* 🔥 Mobile */
+@media (max-width: 640px) {
+    .results-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .question-item {
+        padding: var(--space-sm) var(--space-md);
+    }
+    
+    .question-text {
+        font-size: 0.85rem;
+    }
+    
+    .question-answer {
+        font-size: 0.8rem;
+        padding-left: var(--space-sm);
+    }
+    
+    .feedback-score {
+        font-size: 2rem;
+        padding: var(--space-sm);
+    }
+    
+    .feedback-content {
+        padding: var(--space-md);
+    }
+    
+    .feedback-section {
+        padding: var(--space-sm);
+    }
+    
+    .feedback-section li {
+        font-size: 0.8rem;
+    }
+    
+    .feedback-section p {
+        font-size: 0.8rem;
+    }
 }
 
 /* ============================================
