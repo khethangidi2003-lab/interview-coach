@@ -391,39 +391,20 @@ async function generateQuestions() {
     
     try {
         const prompt = `
-You are a supportive interview coach helping a candidate improve their interview skills. Analyze this interview transcript and provide constructive, encouraging feedback.
+You are an expert HR interviewer. Based on this job description, generate exactly 7 interview questions.
 
-Guidelines:
-- Be encouraging and supportive — the candidate is learning
-- Highlight strengths first
-- Offer suggestions as opportunities, not criticisms
-- Filler words (um, uh, like) are normal in natural speech — only mention if excessive
-- Don't expect perfect STAR format — look for genuine, thoughtful answers
-- The goal is to help the candidate feel confident and improve gradually
-- Keep feedback concise and actionable
-- Give specific examples from the transcript
+Instructions:
+- 3 behavioral questions (asking about past experiences)
+- 2 technical questions (specific skills for the job)
+- 2 questions about company culture and values
 
-${cameraInsights}
+Return ONLY a JSON array of strings. No extra text, no numbering, no bullet points.
 
-Interview Transcript:
-${transcript}
+Example format: ["Question 1", "Question 2", "Question 3"]
 
-Provide feedback including the following sections. Format as JSON:
-{
-    "score": 8,
-    "scoreLabel": "Good",
-    "strengths": ["Strength 1", "Strength 2", "Strength 3"],
-    "improvements": ["Improvement 1", "Improvement 2", "Improvement 3"],
-    "communication": "Assessment of communication skills",
-    "answeredQuestions": true/false,
-    "answerExplanation": "Brief explanation",
-    "fillerAnalysis": "Analysis of filler word usage — be gentle, it's normal",
-    "bodyLanguage": "Assessment of body language and presence",
-    "tip": "One actionable tip"
-}
-
-Be encouraging, specific, and constructive.
-`.trim();
+Job Description:
+${jobDescription}
+        `.trim();
         
         // Call your Vercel serverless API (NO API KEY HERE!)
         const response = await fetch('/api/groq', {
@@ -878,17 +859,7 @@ Camera/Body Language Data:
         }
 
         const prompt = `
-You are a supportive interview coach helping a candidate improve their interview skills. Analyze this interview transcript and provide constructive, encouraging feedback.
-
-Guidelines:
-- Be encouraging and supportive — the candidate is learning
-- Highlight strengths first
-- Offer suggestions as opportunities, not criticisms
-- Filler words (um, uh, like) are normal in natural speech — only mention if excessive
-- Don't expect perfect STAR format — look for genuine, thoughtful answers
-- The goal is to help the candidate feel confident and improve gradually
-- Keep feedback concise and actionable
-- Give specific examples from the transcript
+You are an expert interview coach. Analyze this interview transcript AND camera/body language data to provide comprehensive feedback.
 
 ${cameraInsights}
 
@@ -901,15 +872,15 @@ Provide feedback including the following sections. Format as JSON:
     "scoreLabel": "Good",
     "strengths": ["Strength 1", "Strength 2", "Strength 3"],
     "improvements": ["Improvement 1", "Improvement 2", "Improvement 3"],
-    "communication": "Assessment of communication skills",
+    "communication": "Assessment of communication skills (clarity, confidence, conciseness)",
     "answeredQuestions": true/false,
-    "answerExplanation": "Brief explanation",
-    "fillerAnalysis": "Analysis of filler word usage — be gentle, it's normal",
+    "answerExplanation": "Brief explanation of how well they answered",
+    "fillerAnalysis": "Analysis of filler word usage (um, uh, like)",
     "bodyLanguage": "Assessment of body language and presence",
-    "tip": "One actionable tip"
+    "tip": "One actionable tip for improvement"
 }
 
-Be encouraging, specific, and constructive.
+Be honest but constructive. If camera data is available, incorporate the focus score into the bodyLanguage and overall assessment.
 `;
 
         const response = await fetch('/api/groq', {
@@ -922,7 +893,7 @@ Be encouraging, specific, and constructive.
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are a supportive interview coach. Always respond with valid JSON only.'
+                        content: 'You are an expert interview coach. Always respond with valid JSON only.'
                     },
                     {
                         role: 'user',
