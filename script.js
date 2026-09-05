@@ -840,25 +840,19 @@ async function getFeedback() {
             transcript += `A${index + 1}: ${answer}\n\n`;
         });
 
+        // 🔥 SIMPLIFIED CAMERA SUMMARY (no gaze/eye contact)
         const cameraSummary = getCameraSummary();
 
         let cameraInsights = '';
         if (cameraSummary.totalFrames > 0) {
-            const gazeTotal = Object.values(cameraSummary.gazeDistribution).reduce((a, b) => a + b, 0);
-            const gazePercent = gazeTotal > 0 
-                ? Math.round((cameraSummary.gazeDistribution.center / gazeTotal) * 100) 
-                : 0;
-
             cameraInsights = `
 Camera/Body Language Data:
-- Average Focus Score: ${cameraSummary.averageFocus}% (100% = perfect eye contact)
-- Overall Presence Score: ${cameraSummary.overallPresenceScore}%
-- Times looked away: ${cameraSummary.lookingAwayCount}
-- Gaze distribution: ${gazePercent}% looking at camera
+- Average Focus Score: ${cameraSummary.averageFocus}%
+- Presence Score: ${cameraSummary.overallPresenceScore}%
 - Questions that caused focus drops: ${cameraSummary.questionsWithLowFocus.length > 0 
     ? cameraSummary.questionsWithLowFocus.map(q => `Q${q.questionIndex + 1} (${q.avgFocus}%)`).join(', ') 
     : 'None'}
-- ${cameraSummary.lookingAwayCount === 0 ? ' Maintained excellent eye contact throughout' : '⚠️ Some eye contact issues detected'}
+- ${cameraSummary.averageFocus >= 80 ? 'Maintained strong presence throughout the interview' : 'Some presence issues detected'}
 `;
         } else {
             cameraInsights = 'No camera data available. Camera may not have been active during the interview.';
@@ -882,11 +876,11 @@ Provide feedback including the following sections. Format as JSON:
     "answeredQuestions": true/false,
     "answerExplanation": "Brief explanation of how well they answered",
     "fillerAnalysis": "Analysis of filler word usage (um, uh, like)",
-    "bodyLanguage": "Assessment of body language and presence based on camera data",
+    "bodyLanguage": "Assessment of body language and presence",
     "tip": "One actionable tip for improvement"
 }
 
-Be honest but constructive. If camera data is available, incorporate it into the bodyLanguage and overall assessment.
+Be honest but constructive. If camera data is available, incorporate the focus score into the bodyLanguage and overall assessment.
 `;
 
         const response = await fetch('/api/groq', {
@@ -975,19 +969,15 @@ Be honest but constructive. If camera data is available, incorporate it into the
 
 function displayFeedback(feedback) {
     let scoreClass = 'average';
-    let scoreEmoji = '📊';
     if (feedback.score >= 8) {
         scoreClass = 'excellent';
         scoreEmoji = '🌟';
     } else if (feedback.score >= 6) {
         scoreClass = 'good';
-        scoreEmoji = '👍';
     } else if (feedback.score >= 4) {
         scoreClass = 'average';
-        scoreEmoji = '📊';
     } else {
         scoreClass = 'poor';
-        scoreEmoji = '💪';
     }
     
     let cameraHTML = '';
