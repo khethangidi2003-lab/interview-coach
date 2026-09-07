@@ -196,61 +196,65 @@ function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     
-    // FIX: Keep listening continuously
     recognition.lang = 'en-US';
-    recognition.continuous = true;      // ← Changed from false to true
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     
     let silenceTimer = null;
+    let lastFinalText = ''; // 🔥 Track last added text to prevent duplicates
     
     recognition.onresult = function(event) {
-    // Reset silence timer when user speaks
-    clearTimeout(silenceTimer);
-    
-    let interimTranscript = '';
-    let fullTranscript = '';
-    
-    // Build the full transcript from all results
-    for (let i = 0; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-            // Accumulate all final transcripts
-            fullTranscript += transcript + ' ';
-        } else {
-            interimTranscript = transcript;
-        }
-    }
-    
-    // Get the current stored answer and append new final parts
-    const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
-    const combinedAnswer = currentAnswer + fullTranscript;
-    
-    // Show interim results (as user speaks)
-    if (interimTranscript) {
-        answerText.textContent = combinedAnswer + interimTranscript + ' (still listening...)';
-    }
-    
-    // When we have final results, store them
-    if (fullTranscript) {
-        // Store the combined answer
-        interviewState.answers[interviewState.currentIndex] = combinedAnswer.trim();
-        answerText.textContent = combinedAnswer.trim();
+        // Reset silence timer when user speaks
+        clearTimeout(silenceTimer);
         
-        if (interviewState.isInterviewActive && combinedAnswer.trim()) {
-            setStatus('Answer recorded! Click "Next Question" to continue.', 'success');
-            if (nextQuestionBtn) nextQuestionBtn.disabled = false;
+        let finalTranscript = '';
+        let interimTranscript = '';
+        
+        // Get the latest results
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+            } else {
+                interimTranscript += transcript;
+            }
         }
-    }
-    
-    // Auto-stop after 2 seconds of silence
-    silenceTimer = setTimeout(() => {
-        if (interviewState.isListening) {
-            stopListening();
-            setStatus('Stopped listening (silence detected)', '');
+        
+        // 🔥 ONLY update if we have new final text AND it's not a duplicate
+        if (finalTranscript) {
+            const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
+            const trimmedFinal = finalTranscript.trim();
+            
+            // Check if this text is already in the answer (prevent duplicates)
+            if (!currentAnswer.includes(trimmedFinal) && trimmedFinal !== lastFinalText) {
+                interviewState.answers[interviewState.currentIndex] = (currentAnswer + ' ' + trimmedFinal).trim();
+                lastFinalText = trimmedFinal; // Remember what was added
+            }
+            
+            // Update display
+            answerText.textContent = interviewState.answers[interviewState.currentIndex];
+            
+            if (interviewState.isInterviewActive && interviewState.answers[interviewState.currentIndex].trim()) {
+                setStatus('Answer recorded! Click "Next Question" to continue.', 'success');
+                if (nextQuestionBtn) nextQuestionBtn.disabled = false;
+            }
         }
-    }, 2000);
-};
+        
+        // Show interim results (as user speaks)
+        if (interimTranscript) {
+            const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
+            answerText.textContent = currentAnswer + ' ' + interimTranscript + ' (still listening...)';
+        }
+        
+        // Auto-stop after 2 seconds of silence
+        silenceTimer = setTimeout(() => {
+            if (interviewState.isListening) {
+                stopListening();
+                setStatus('Stopped listening (silence detected)', '');
+            }
+        }, 2000);
+    };
     
     recognition.onerror = function(event) {
         console.error('Speech recognition error:', event.error);
