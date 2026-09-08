@@ -1360,7 +1360,13 @@ textarea {
     width: auto;
     display: block;
 }
-
+.logo1 {
+    height: 198px;
+    width: auto;
+    display: block;
+    margin-right: 8px;
+    padding-bottom:0px;
+}
 /* Landing Navigation */
 .landing-nav {
     display: flex;
