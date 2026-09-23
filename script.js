@@ -204,14 +204,12 @@ function initSpeechRecognition() {
     let silenceTimer = null;
     let lastFinalText = ''; // Track last added text to prevent duplicates
     
-    recognition.onresult = function(event) {
-    // Reset silence timer when user speaks
+recognition.onresult = function(event) {
     clearTimeout(silenceTimer);
     
     let interimTranscript = '';
     let finalTranscript = '';
     
-    // 🔥 MOBILE FIX: Only read NEW results (using resultIndex)
     for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
@@ -221,20 +219,45 @@ function initSpeechRecognition() {
         }
     }
     
-    // Show interim (live) as user speaks
     if (interimTranscript) {
         const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
         answerText.textContent = currentAnswer + ' ' + interimTranscript + ' (listening...)';
     }
     
-    // 🔥 MOBILE FIX: Only add final text if it's truly new
     if (finalTranscript.trim()) {
         const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
         const trimmedFinal = finalTranscript.trim();
         
-        // 🔥 Check if this exact text is already in the answer (prevents duplicates)
-        if (!currentAnswer.includes(trimmedFinal)) {
-            // Append with a space if needed
+        // 🔥 STRONGER DUPLICATE CHECK:
+        // 1. Don't add if it's already in the answer
+        // 2. Don't add if the last part of the answer ends with this text
+        // 3. Don't add if it's the same as the last added chunk
+        
+        const words = trimmedFinal.split(' ');
+        const lastWord = words[words.length - 1];
+        const firstWord = words[0];
+        
+        let isDuplicate = false;
+        
+        // Check if whole phrase exists
+        if (currentAnswer.includes(trimmedFinal)) {
+            isDuplicate = true;
+        }
+        
+        // Check if the start of this phrase matches the end of what we have
+        if (currentAnswer.endsWith(firstWord)) {
+            // Remove the overlap and add only the new part
+            const overlapIndex = currentAnswer.lastIndexOf(firstWord);
+            const newPart = trimmedFinal.substring(trimmedFinal.indexOf(firstWord) + firstWord.length).trim();
+            if (newPart && !currentAnswer.includes(newPart)) {
+                interviewState.answers[interviewState.currentIndex] = 
+                    (currentAnswer + ' ' + newPart).trim();
+                answerText.textContent = interviewState.answers[interviewState.currentIndex];
+            }
+            isDuplicate = true;
+        }
+        
+        if (!isDuplicate) {
             const newAnswer = currentAnswer 
                 ? currentAnswer + ' ' + trimmedFinal 
                 : trimmedFinal;
@@ -249,7 +272,6 @@ function initSpeechRecognition() {
         }
     }
     
-    // Auto-stop after 2 seconds of silence
     silenceTimer = setTimeout(() => {
         if (interviewState.isListening) {
             stopListening();
