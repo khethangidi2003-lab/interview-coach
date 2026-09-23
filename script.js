@@ -210,6 +210,7 @@ recognition.onresult = function(event) {
     let interimTranscript = '';
     let finalTranscript = '';
     
+    // Get the latest result
     for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
@@ -219,45 +220,29 @@ recognition.onresult = function(event) {
         }
     }
     
+    // Show interim text while speaking
     if (interimTranscript) {
         const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
         answerText.textContent = currentAnswer + ' ' + interimTranscript + ' (listening...)';
     }
     
+    // 🔥 Handle final transcript with DUPLICATE DETECTION
     if (finalTranscript.trim()) {
         const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
         const trimmedFinal = finalTranscript.trim();
         
-        // 🔥 STRONGER DUPLICATE CHECK:
-        // 1. Don't add if it's already in the answer
-        // 2. Don't add if the last part of the answer ends with this text
-        // 3. Don't add if it's the same as the last added chunk
+        // 🔥 THE FIX: Check if this ENTIRE sentence was just added
+        // by looking at the last part of the current answer
+        const lastChunk = currentAnswer.slice(-trimmedFinal.length);
         
-        const words = trimmedFinal.split(' ');
-        const lastWord = words[words.length - 1];
-        const firstWord = words[0];
-        
-        let isDuplicate = false;
-        
-        // Check if whole phrase exists
-        if (currentAnswer.includes(trimmedFinal)) {
-            isDuplicate = true;
-        }
-        
-        // Check if the start of this phrase matches the end of what we have
-        if (currentAnswer.endsWith(firstWord)) {
-            // Remove the overlap and add only the new part
-            const overlapIndex = currentAnswer.lastIndexOf(firstWord);
-            const newPart = trimmedFinal.substring(trimmedFinal.indexOf(firstWord) + firstWord.length).trim();
-            if (newPart && !currentAnswer.includes(newPart)) {
-                interviewState.answers[interviewState.currentIndex] = 
-                    (currentAnswer + ' ' + newPart).trim();
-                answerText.textContent = interviewState.answers[interviewState.currentIndex];
-            }
-            isDuplicate = true;
-        }
-        
-        if (!isDuplicate) {
+        if (lastChunk === trimmedFinal) {
+            // 🔥 This is a duplicate — DON'T add it again
+            console.log('Duplicate detected, skipping:', trimmedFinal);
+        } else if (currentAnswer.includes(trimmedFinal)) {
+            // 🔥 Already exists somewhere in the answer
+            console.log('Already in answer, skipping:', trimmedFinal);
+        } else {
+            // 🔥 It's genuinely new — add it
             const newAnswer = currentAnswer 
                 ? currentAnswer + ' ' + trimmedFinal 
                 : trimmedFinal;
@@ -272,6 +257,7 @@ recognition.onresult = function(event) {
         }
     }
     
+    // Auto-stop after 2.5 seconds of silence
     silenceTimer = setTimeout(() => {
         if (interviewState.isListening) {
             stopListening();
