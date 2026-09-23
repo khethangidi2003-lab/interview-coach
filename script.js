@@ -13,7 +13,12 @@ let interviewState = {
     apiKey: '',
     jobDescription: ''
 };
+// ============================================
+// SPEECH-TO-TEXT
+// ============================================
 
+let recognition = null;
+let lastAddedText = '';  // Tracks the last text added — prevents duplicates
 // ============================================
 // DOM REFERENCES (Shared across pages)
 // ============================================
@@ -182,10 +187,6 @@ function showNudge(message) {
         }, 4000);
     }
 }
-// ============================================
-// SPEECH-TO-TEXT
-// ============================================
-let recognition = null;
 
 function initSpeechRecognition() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -202,47 +203,50 @@ function initSpeechRecognition() {
     recognition.maxAlternatives = 1;
     
     let silenceTimer = null;
-    let lastFinalText = ''; // Track last added text to prevent duplicates
     
-recognition.onresult = function(event) {
-    clearTimeout(silenceTimer);
-    
-    let interimTranscript = '';
-    let finalTranscript = '';
-    
-    // Get the latest result
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-        } else {
-            interimTranscript += transcript;
+    recognition.onresult = function(event) {
+        clearTimeout(silenceTimer);
+        
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
+        // Get the latest result
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+            } else {
+                interimTranscript += transcript;
+            }
         }
-    }
-    
-    // Show interim text while speaking
-    if (interimTranscript) {
-        const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
-        answerText.textContent = currentAnswer + ' ' + interimTranscript + ' (listening...)';
-    }
-    
-    // 🔥 Handle final transcript with DUPLICATE DETECTION
-    if (finalTranscript.trim()) {
-        const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
-        const trimmedFinal = finalTranscript.trim();
         
-        // 🔥 THE FIX: Check if this ENTIRE sentence was just added
-        // by looking at the last part of the current answer
-        const lastChunk = currentAnswer.slice(-trimmedFinal.length);
+        // Show interim text while speaking
+        if (interimTranscript) {
+            const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
+            answerText.textContent = currentAnswer + ' ' + interimTranscript + ' (listening...)';
+        }
         
-        if (lastChunk === trimmedFinal) {
-            // 🔥 This is a duplicate — DON'T add it again
-            console.log('Duplicate detected, skipping:', trimmedFinal);
-        } else if (currentAnswer.includes(trimmedFinal)) {
-            // 🔥 Already exists somewhere in the answer
-            console.log('Already in answer, skipping:', trimmedFinal);
-        } else {
-            // 🔥 It's genuinely new — add it
+        // 🔥 NUCLEAR OPTION: Handle final transcript with duplicate detection
+        if (finalTranscript.trim()) {
+            const trimmedFinal = finalTranscript.trim();
+            
+            // 🔥 Check 1: Is this EXACTLY what we just added?
+            if (trimmedFinal === lastAddedText) {
+                console.log('🔇 Duplicate detected (same as last added), skipping');
+                return;
+            }
+            
+            // 🔥 Check 2: Is this text already somewhere in the answer?
+            const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
+            if (currentAnswer.includes(trimmedFinal)) {
+                console.log('🔇 Duplicate detected (already in answer), skipping');
+                lastAddedText = trimmedFinal; // Remember it anyway
+                return;
+            }
+            
+            // ✅ It's new — save it
+            lastAddedText = trimmedFinal;
+            
             const newAnswer = currentAnswer 
                 ? currentAnswer + ' ' + trimmedFinal 
                 : trimmedFinal;
@@ -250,21 +254,22 @@ recognition.onresult = function(event) {
             interviewState.answers[interviewState.currentIndex] = newAnswer.trim();
             answerText.textContent = interviewState.answers[interviewState.currentIndex];
             
+            console.log('✅ Added new text:', trimmedFinal);
+            
             if (interviewState.isInterviewActive) {
                 setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
                 if (nextQuestionBtn) nextQuestionBtn.disabled = false;
             }
         }
-    }
-    
-    // Auto-stop after 2.5 seconds of silence
-    silenceTimer = setTimeout(() => {
-        if (interviewState.isListening) {
-            stopListening();
-            setStatus('Stopped listening (silence detected).', '');
-        }
-    }, 2500);
-};
+        
+        // Auto-stop after 2.5 seconds of silence
+        silenceTimer = setTimeout(() => {
+            if (interviewState.isListening) {
+                stopListening();
+                setStatus('Stopped listening (silence detected).', '');
+            }
+        }, 2500);
+    };
     
     recognition.onerror = function(event) {
         console.error('Speech recognition error:', event.error);
@@ -292,16 +297,14 @@ recognition.onresult = function(event) {
 }
 
 function startListening() {
+    // Reset duplicate tracker when starting fresh
+    lastAddedText = '';
+    
     if (!recognition) {
         if (!initSpeechRecognition()) {
             return;
         }
     }
-    
-    // MOBILE FIX: Reset the answer for this question before starting
-    // (only reset if it's a fresh start — not a continuation)
-    // Uncomment the line below ONLY if you want each listen to start fresh
-    // interviewState.answers[interviewState.currentIndex] = '';
     
     try {
         recognition.start();
@@ -605,6 +608,9 @@ async function startInterview() {
 }
 
 function showQuestion(index) {
+    // 🔥 Reset duplicate tracker for the new question
+    lastAddedText = '';
+
     console.log(`showQuestion called with index: ${index}`);
     console.log(`Total questions: ${interviewState.questions.length}`);
     
@@ -651,6 +657,9 @@ function showQuestion(index) {
 }
 
 function showNextQuestion() {
+    // 🔥 Reset duplicate tracker
+    lastAddedText = '';
+    
     console.log('Moving to next question...');
     stopListening();
     if (startListeningBtn) startListeningBtn.style.display = 'none';
