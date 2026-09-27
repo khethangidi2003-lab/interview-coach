@@ -220,67 +220,79 @@ function initSpeechRecognition() {
     
     recognition.lang = 'en-US';
     recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.interimResults = true; // Keep this true to get live updates
     recognition.maxAlternatives = 1;
     
-    // 🔥 Track the best (most complete) transcript we've seen
-    let bestTranscript = '';
-    let silenceTimer = null;
-    let isSaving = false;
-    
+    // --- Variables for the Debounce Strategy ---
+    let fullTranscript = ''; // The definitive transcript we are building
+    let saveTimer = null;    // Timer to decide when to save
+    let isSaving = false;   // Flag to prevent concurrent saves
+
+    // Reset the transcript when a new listening session begins
+    recognition.onstart = function() {
+        fullTranscript = interviewState.answers[interviewState.currentIndex] || '';
+        console.log('🎤 Speech recognition started. Initial transcript:', fullTranscript || '(empty)');
+    };
+
     recognition.onresult = function(event) {
-        clearTimeout(silenceTimer);
-        
-        // 🔥 REBUILD the full transcript from ALL results every time
-        // This is different from before — we rebuild, not append
-        let fullTranscript = '';
-        
+        // A new speech event has occurred. Reset the save timer.
+        clearTimeout(saveTimer);
+
+        // 🔥 THE CORE FIX: Rebuild the entire transcript from scratch on every event.
+        // This method is immune to mobile's weird partial and duplicate results.
+        let transcriptFromEvent = '';
         for (let i = 0; i < event.results.length; i++) {
-            fullTranscript += event.results[i][0].transcript;
+            transcriptFromEvent += event.results[i][0].transcript;
         }
         
-        // Clean up whitespace
-        fullTranscript = fullTranscript.replace(/\s+/g, ' ').trim();
-        
-        // 🔥 Only update best if it's LONGER than what we had
-        // (mobile sometimes fires a shorter, worse version)
-        if (fullTranscript.length > bestTranscript.length) {
-            bestTranscript = fullTranscript;
-        }
-        
-        // Show live preview while speaking
+        // Clean up any extra spaces and update our main transcript variable.
+        // We replace the old transcript with this new, more complete one.
+        fullTranscript = transcriptFromEvent.replace(/\s+/g, ' ').trim();
+
+        // Show the user what is currently being heard (live preview).
         if (answerText) {
-            answerText.textContent = bestTranscript + ' (listening...)';
+            answerText.textContent = fullTranscript + ' (listening...)';
         }
-        
-        // 🔥 AUTO-SAVE after silence (2.5 seconds)
-        silenceTimer = setTimeout(() => {
-            if (isSaving) return;
+
+        // 🔥 THE DEBOUNCE: Set a timer to save the answer.
+        // If the user pauses for 2.5 seconds, the timer will fire and save.
+        saveTimer = setTimeout(() => {
+            if (isSaving) return; // Don't save if a save is already in progress
             isSaving = true;
-            
-            // Save the best transcript we saw
-            if (bestTranscript.trim()) {
-                interviewState.answers[interviewState.currentIndex] = bestTranscript.trim();
-                answerText.textContent = bestTranscript.trim();
+
+            console.log('⏹️ Silence detected. Final transcript to save:', fullTranscript);
+
+            // Save the final, accumulated transcript to our state.
+            if (fullTranscript.trim()) {
+                interviewState.answers[interviewState.currentIndex] = fullTranscript.trim();
                 
-                console.log('✅ Saved answer:', bestTranscript);
-                
+                // Update the UI to show the final text without the "(listening...)" part.
+                if (answerText) {
+                    answerText.textContent = fullTranscript.trim();
+                }
+
                 if (interviewState.isInterviewActive) {
                     setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
                     if (nextQuestionBtn) nextQuestionBtn.disabled = false;
                 }
+            } else {
+                // Handle case where user started listening but said nothing
+                interviewState.answers[interviewState.currentIndex] = '';
+                if (answerText) {
+                    answerText.textContent = 'No answer recorded. Click "Start Listening" to try again.';
+                }
             }
-            
-            // Stop listening automatically
+
+            // Stop listening automatically after the pause
             if (interviewState.isListening) {
                 stopListening();
                 setStatus('Stopped listening (silence detected).', '');
             }
             
-            isSaving = false;
-        }, 2500);
+            isSaving = false; // Reset the flag
+        }, 2500); // 2.5-second pause to trigger the save
     };
-    
+
     recognition.onerror = function(event) {
         console.error('Speech recognition error:', event.error);
         if (event.error === 'not-allowed') {
@@ -293,14 +305,14 @@ function initSpeechRecognition() {
         interviewState.isListening = false;
         if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
         if (stopListeningBtn) stopListeningBtn.style.display = 'none';
-        clearTimeout(silenceTimer);
+        clearTimeout(saveTimer); // Clean up the timer on error
     };
     
     recognition.onend = function() {
         interviewState.isListening = false;
         if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
         if (stopListeningBtn) stopListeningBtn.style.display = 'none';
-        clearTimeout(silenceTimer);
+        clearTimeout(saveTimer); // Clean up the timer when recognition ends
     };
     
     return true;
