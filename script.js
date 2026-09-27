@@ -223,80 +223,61 @@ function initSpeechRecognition() {
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     
+    // 🔥 Track the best (most complete) transcript we've seen
+    let bestTranscript = '';
     let silenceTimer = null;
-    
-    // 🔥 NEW: Track which result indices we've already processed
-    let processedIndexes = new Set();
-    
-    // 🔥 NEW: Reset the set when we start a new listening session
-    recognition.onstart = function() {
-        processedIndexes.clear();
-    };
+    let isSaving = false;
     
     recognition.onresult = function(event) {
         clearTimeout(silenceTimer);
         
-        let interimTranscript = '';
-        let newlyFinalText = '';
+        // 🔥 REBUILD the full transcript from ALL results every time
+        // This is different from before — we rebuild, not append
+        let fullTranscript = '';
         
-        // 🔥 THE KEY FIX: Only process result indexes we haven't seen yet
         for (let i = 0; i < event.results.length; i++) {
-            const result = event.results[i];
-            
-            if (result.isFinal) {
-                // 🔥 Skip if we already processed this exact index
-                if (processedIndexes.has(i)) {
-                    continue;
-                }
-                
-                // Mark as processed
-                processedIndexes.add(i);
-                newlyFinalText += result[0].transcript + ' ';
-                
-            } else {
-                // It's interim (still being spoken)
-                interimTranscript += result[0].transcript;
-            }
+            fullTranscript += event.results[i][0].transcript;
         }
         
-        // Clean up
-        newlyFinalText = newlyFinalText.replace(/\s+/g, ' ').trim();
-        interimTranscript = interimTranscript.replace(/\s+/g, ' ').trim();
+        // Clean up whitespace
+        fullTranscript = fullTranscript.replace(/\s+/g, ' ').trim();
         
-        // 🔥 Show the current state
-        const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
-        
-        if (interimTranscript) {
-            // Show live as user speaks
-            const preview = currentAnswer 
-                ? currentAnswer + ' ' + interimTranscript 
-                : interimTranscript;
-            answerText.textContent = preview + ' (listening...)';
+        // 🔥 Only update best if it's LONGER than what we had
+        // (mobile sometimes fires a shorter, worse version)
+        if (fullTranscript.length > bestTranscript.length) {
+            bestTranscript = fullTranscript;
         }
         
-        // 🔥 Add ONLY the newly finalized text
-        if (newlyFinalText) {
-            const newAnswer = currentAnswer 
-                ? currentAnswer + ' ' + newlyFinalText 
-                : newlyFinalText;
-            
-            interviewState.answers[interviewState.currentIndex] = newAnswer.trim();
-            answerText.textContent = interviewState.answers[interviewState.currentIndex];
-            
-            console.log('✅ Added:', newlyFinalText);
-            
-            if (interviewState.isInterviewActive) {
-                setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
-                if (nextQuestionBtn) nextQuestionBtn.disabled = false;
-            }
+        // Show live preview while speaking
+        if (answerText) {
+            answerText.textContent = bestTranscript + ' (listening...)';
         }
         
-        // Auto-stop after 2.5 seconds of silence
+        // 🔥 AUTO-SAVE after silence (2.5 seconds)
         silenceTimer = setTimeout(() => {
+            if (isSaving) return;
+            isSaving = true;
+            
+            // Save the best transcript we saw
+            if (bestTranscript.trim()) {
+                interviewState.answers[interviewState.currentIndex] = bestTranscript.trim();
+                answerText.textContent = bestTranscript.trim();
+                
+                console.log('✅ Saved answer:', bestTranscript);
+                
+                if (interviewState.isInterviewActive) {
+                    setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
+                    if (nextQuestionBtn) nextQuestionBtn.disabled = false;
+                }
+            }
+            
+            // Stop listening automatically
             if (interviewState.isListening) {
                 stopListening();
                 setStatus('Stopped listening (silence detected).', '');
             }
+            
+            isSaving = false;
         }, 2500);
     };
     
@@ -325,12 +306,16 @@ function initSpeechRecognition() {
     return true;
 }
 
-function startListening() {    
+function startListening() {
     if (!recognition) {
         if (!initSpeechRecognition()) {
             return;
         }
     }
+    
+    // 🔥 Clear any previous answer for this question when starting fresh
+    // (uncomment the line below if you want each listen to start fresh)
+    // interviewState.answers[interviewState.currentIndex] = '';
     
     try {
         recognition.start();
@@ -338,12 +323,15 @@ function startListening() {
         if (startListeningBtn) startListeningBtn.style.display = 'none';
         if (stopListeningBtn) stopListeningBtn.style.display = 'inline-block';
         if (answerDisplay) answerDisplay.style.display = 'block';
+        
+        // Show what we have so far (if resuming)
+        const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
         if (answerText) {
-            const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
             answerText.textContent = currentAnswer 
                 ? currentAnswer + ' (listening for more...)' 
                 : 'Listening... speak your answer clearly.';
         }
+        
         setStatus('Listening... speak now', 'listening');
     } catch (error) {
         console.error('Failed to start listening:', error);
