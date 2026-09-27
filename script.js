@@ -14,11 +14,29 @@ let interviewState = {
     jobDescription: ''
 };
 // ============================================
+// SPEECH SYNTHESIS VOICE PRELOAD
+// ============================================
+
+let availableVoices = [];
+
+// 🔥 Preload voices as soon as the page loads
+function loadVoices() {
+    availableVoices = window.speechSynthesis.getVoices();
+    console.log(`✅ Loaded ${availableVoices.length} voices`);
+}
+
+if ('speechSynthesis' in window) {
+    // Try immediately
+    loadVoices();
+    
+    // Also listen for when voices finish loading
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+// ============================================
 // SPEECH-TO-TEXT
 // ============================================
 
 let recognition = null;
-let lastAddedText = '';  // Tracks the last text added — prevents duplicates
 // ============================================
 // DOM REFERENCES (Shared across pages)
 // ============================================
@@ -122,6 +140,9 @@ async function initFaceDetector() {
             return false;
         }
         
+        // 🔥 Reduce camera quality on mobile
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
         faceDetector = new FaceDetector();
         
         faceDetector.onFocusUpdate = function(score, gaze) {
@@ -204,57 +225,65 @@ function initSpeechRecognition() {
     
     let silenceTimer = null;
     
+    // 🔥 NEW: Track which result indices we've already processed
+    let processedIndexes = new Set();
+    
+    // 🔥 NEW: Reset the set when we start a new listening session
+    recognition.onstart = function() {
+        processedIndexes.clear();
+    };
+    
     recognition.onresult = function(event) {
         clearTimeout(silenceTimer);
         
         let interimTranscript = '';
-        let finalTranscript = '';
+        let newlyFinalText = '';
         
-        // Get the latest result
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-                finalTranscript += transcript;
+        // 🔥 THE KEY FIX: Only process result indexes we haven't seen yet
+        for (let i = 0; i < event.results.length; i++) {
+            const result = event.results[i];
+            
+            if (result.isFinal) {
+                // 🔥 Skip if we already processed this exact index
+                if (processedIndexes.has(i)) {
+                    continue;
+                }
+                
+                // Mark as processed
+                processedIndexes.add(i);
+                newlyFinalText += result[0].transcript + ' ';
+                
             } else {
-                interimTranscript += transcript;
+                // It's interim (still being spoken)
+                interimTranscript += result[0].transcript;
             }
         }
         
-        // Show interim text while speaking
+        // Clean up
+        newlyFinalText = newlyFinalText.replace(/\s+/g, ' ').trim();
+        interimTranscript = interimTranscript.replace(/\s+/g, ' ').trim();
+        
+        // 🔥 Show the current state
+        const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
+        
         if (interimTranscript) {
-            const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
-            answerText.textContent = currentAnswer + ' ' + interimTranscript + ' (listening...)';
+            // Show live as user speaks
+            const preview = currentAnswer 
+                ? currentAnswer + ' ' + interimTranscript 
+                : interimTranscript;
+            answerText.textContent = preview + ' (listening...)';
         }
         
-        // 🔥 NUCLEAR OPTION: Handle final transcript with duplicate detection
-        if (finalTranscript.trim()) {
-            const trimmedFinal = finalTranscript.trim();
-            
-            // 🔥 Check 1: Is this EXACTLY what we just added?
-            if (trimmedFinal === lastAddedText) {
-                console.log('🔇 Duplicate detected (same as last added), skipping');
-                return;
-            }
-            
-            // 🔥 Check 2: Is this text already somewhere in the answer?
-            const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
-            if (currentAnswer.includes(trimmedFinal)) {
-                console.log('🔇 Duplicate detected (already in answer), skipping');
-                lastAddedText = trimmedFinal; // Remember it anyway
-                return;
-            }
-            
-            // ✅ It's new — save it
-            lastAddedText = trimmedFinal;
-            
+        // 🔥 Add ONLY the newly finalized text
+        if (newlyFinalText) {
             const newAnswer = currentAnswer 
-                ? currentAnswer + ' ' + trimmedFinal 
-                : trimmedFinal;
+                ? currentAnswer + ' ' + newlyFinalText 
+                : newlyFinalText;
             
             interviewState.answers[interviewState.currentIndex] = newAnswer.trim();
             answerText.textContent = interviewState.answers[interviewState.currentIndex];
             
-            console.log('✅ Added new text:', trimmedFinal);
+            console.log('✅ Added:', newlyFinalText);
             
             if (interviewState.isInterviewActive) {
                 setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
@@ -296,10 +325,7 @@ function initSpeechRecognition() {
     return true;
 }
 
-function startListening() {
-    // Reset duplicate tracker when starting fresh
-    lastAddedText = '';
-    
+function startListening() {    
     if (!recognition) {
         if (!initSpeechRecognition()) {
             return;
@@ -359,8 +385,17 @@ function speakText(text, callback) {
     utterance.pitch = 1;
     utterance.volume = 1;
     
-    const voices = window.speechSynthesis.getVoices();
-    const femaleVoice = voices.find(voice => voice.name.includes('Female') || voice.name.includes('Samantha'));
+    // 🔥 Use preloaded voices
+    if (availableVoices.length === 0) {
+        availableVoices = window.speechSynthesis.getVoices();
+    }
+    
+    const femaleVoice = availableVoices.find(voice => 
+        voice.name.includes('Female') || 
+        voice.name.includes('Samantha') ||
+        voice.name.includes('Google US English')
+    );
+    
     if (femaleVoice) {
         utterance.voice = femaleVoice;
     }
@@ -608,9 +643,6 @@ async function startInterview() {
 }
 
 function showQuestion(index) {
-    // 🔥 Reset duplicate tracker for the new question
-    lastAddedText = '';
-
     console.log(`showQuestion called with index: ${index}`);
     console.log(`Total questions: ${interviewState.questions.length}`);
     
@@ -656,10 +688,7 @@ function showQuestion(index) {
     });
 }
 
-function showNextQuestion() {
-    // 🔥 Reset duplicate tracker
-    lastAddedText = '';
-    
+function showNextQuestion() {    
     console.log('Moving to next question...');
     stopListening();
     if (startListeningBtn) startListeningBtn.style.display = 'none';
