@@ -13,6 +13,7 @@ let interviewState = {
     apiKey: '',
     jobDescription: ''
 };
+
 // ============================================
 // SPEECH SYNTHESIS VOICE PRELOAD
 // ============================================
@@ -32,11 +33,30 @@ if ('speechSynthesis' in window) {
     // Also listen for when voices finish loading
     window.speechSynthesis.onvoiceschanged = loadVoices;
 }
+
 // ============================================
-// SPEECH-TO-TEXT
+// SPEECH-TO-TEXT — UNIVERSAL CROSS-BROWSER VERSION
 // ============================================
 
 let recognition = null;
+
+// 🔥 Detect browser/device for adaptive behavior
+const BROWSER_INFO = (function() {
+    const ua = navigator.userAgent;
+    return {
+        isMobile: /iPhone|iPad|iPod|Android/i.test(ua),
+        isIOS: /iPhone|iPad|iPod/i.test(ua),
+        isAndroid: /Android/i.test(ua),
+        isSafari: /^((?!chrome|android).)*safari/i.test(ua),
+        isChrome: /chrome/i.test(ua) && !/edge/i.test(ua),
+        isEdge: /edge/i.test(ua),
+        isFirefox: /firefox/i.test(ua),
+        supportsSpeech: 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+    };
+})();
+
+console.log('🌐 Browser detected:', BROWSER_INFO);
+
 // ============================================
 // DOM REFERENCES (Shared across pages)
 // ============================================
@@ -209,61 +229,149 @@ function showNudge(message) {
     }
 }
 
+// ============================================
+// SPEECH RECOGNITION — UNIVERSAL VERSION
+// ============================================
+
 function initSpeechRecognition() {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        setStatus('Your browser doesn\'t support speech recognition. Please use Chrome or Edge.', 'error');
+    // Check for support
+    if (!BROWSER_INFO.supportsSpeech) {
+        setStatus(
+            'Speech recognition is not supported in this browser. ' +
+            'Please use Chrome, Edge, or Safari. You can still type your answers.',
+            'error'
+        );
         return false;
     }
     
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     
+    // ============================================
+    // CONFIGURATION — ADAPTED PER BROWSER
+    // ============================================
+    
     recognition.lang = 'en-US';
-    recognition.continuous = true;
-    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     
-    // 🔥 Track the best (most complete) transcript we've seen
-    let bestTranscript = '';
-    let silenceTimer = null;
-    let isSaving = false;
+    // 🔥 iOS Safari needs continuous = false (it doesn't handle continuous well)
+    // 🔥 Android Chrome works better with continuous = false too (avoids the rebuild bug)
+    // 🔥 Desktop Chrome/Edge work well with continuous = true
+    if (BROWSER_INFO.isIOS || BROWSER_INFO.isAndroid) {
+        recognition.continuous = false;
+        recognition.interimResults = true;
+    } else if (BROWSER_INFO.isSafari) {
+        recognition.continuous = false;
+        recognition.interimResults = false; // Safari desktop doesn't like interim
+    } else {
+        recognition.continuous = true;
+        recognition.interimResults = true;
+    }
+    
+    console.log('🎤 Recognition config:', {
+        continuous: recognition.continuous,
+        interimResults: recognition.interimResults,
+        lang: recognition.lang
+    });
+    
+    // ============================================
+    // STATE VARIABLES (per recognition session)
+    // ============================================
+    
+    let saveTimer = null;            // Debounce timer
+    let isSaving = false;            // Prevent double-saves
+    
+    // ============================================
+    // ON START — Reset session state
+    // ============================================
+    
+    recognition.onstart = function() {
+        console.log('🎤 Recognition started');
+        
+        // Clear any pending save
+        clearTimeout(saveTimer);
+        isSaving = false;
+    };
+    
+    // ============================================
+    // ON RESULT — Universal handling
+    // ============================================
     
     recognition.onresult = function(event) {
-        clearTimeout(silenceTimer);
+        clearTimeout(saveTimer);
         
-        // 🔥 REBUILD the full transcript from ALL results every time
-        // This is different from before — we rebuild, not append
-        let fullTranscript = '';
+        // ============================================
+        // STRATEGY: Rebuild full transcript from all results
+        // This works universally because we don't trust isFinal
+        // ============================================
         
+        let interimText = '';
+        let finalText = '';
+        
+        // Loop through ALL results (not just from resultIndex)
+        // This handles both desktop (accumulated) and mobile (reset) behavior
         for (let i = 0; i < event.results.length; i++) {
-            fullTranscript += event.results[i][0].transcript;
+            const transcript = event.results[i][0].transcript;
+            
+            if (event.results[i].isFinal) {
+                finalText += transcript + ' ';
+            } else {
+                interimText += transcript;
+            }
         }
         
-        // Clean up whitespace
-        fullTranscript = fullTranscript.replace(/\s+/g, ' ').trim();
+        // Clean up
+        finalText = finalText.replace(/\s+/g, ' ').trim();
+        interimText = interimText.replace(/\s+/g, ' ').trim();
         
-        // 🔥 Only update best if it's LONGER than what we had
-        // (mobile sometimes fires a shorter, worse version)
-        if (fullTranscript.length > bestTranscript.length) {
-            bestTranscript = fullTranscript;
-        }
+        // ============================================
+        // BUILD THE DISPLAY TEXT
+        // ============================================
         
-        // Show live preview while speaking
+        // The "committed" part is what was in the answer before this session
+        const committedPart = interviewState.answers[interviewState.currentIndex] || '';
+        
+        // The "new" part is what we've heard this session
+        const newPart = finalText || interimText;
+        
+        // Full text to display (committed + new)
+        const displayText = newPart 
+            ? (committedPart ? committedPart + ' ' + newPart : newPart)
+            : committedPart;
+        
+        // Show live preview
         if (answerText) {
-            answerText.textContent = bestTranscript + ' (listening...)';
+            if (interimText && !finalText) {
+                answerText.textContent = displayText + ' (listening...)';
+            } else {
+                answerText.textContent = displayText;
+            }
         }
         
-        // 🔥 AUTO-SAVE after silence (2.5 seconds)
-        silenceTimer = setTimeout(() => {
+        // ============================================
+        // SAVE LOGIC — Debounced
+        // ============================================
+        
+        saveTimer = setTimeout(function() {
             if (isSaving) return;
             isSaving = true;
             
-            // Save the best transcript we saw
-            if (bestTranscript.trim()) {
-                interviewState.answers[interviewState.currentIndex] = bestTranscript.trim();
-                answerText.textContent = bestTranscript.trim();
+            // Determine final text to save
+            const textToSave = finalText || interimText;
+            
+            if (textToSave) {
+                // Build the final answer: committed + new
+                const finalAnswer = committedPart 
+                    ? (committedPart + ' ' + textToSave).replace(/\s+/g, ' ').trim()
+                    : textToSave;
                 
-                console.log('✅ Saved answer:', bestTranscript);
+                interviewState.answers[interviewState.currentIndex] = finalAnswer;
+                
+                if (answerText) {
+                    answerText.textContent = finalAnswer;
+                }
+                
+                console.log('✅ Answer saved:', finalAnswer);
                 
                 if (interviewState.isInterviewActive) {
                     setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
@@ -271,87 +379,197 @@ function initSpeechRecognition() {
                 }
             }
             
-            // Stop listening automatically
+            // Auto-stop after silence (longer on mobile)
             if (interviewState.isListening) {
-                stopListening();
-                setStatus('Stopped listening (silence detected).', '');
+                setTimeout(function() {
+                    if (interviewState.isListening) {
+                        try {
+                            recognition.stop();
+                        } catch (e) {}
+                    }
+                }, 500);
             }
             
             isSaving = false;
-        }, 2500);
+        }, BROWSER_INFO.isMobile ? 2500 : 1800);
     };
+    
+    // ============================================
+    // ON ERROR — Graceful handling
+    // ============================================
     
     recognition.onerror = function(event) {
-        console.error('Speech recognition error:', event.error);
-        if (event.error === 'not-allowed') {
-            setStatus('Please allow microphone access to speak your answers.', 'error');
-        } else if (event.error === 'no-speech') {
-            setStatus('No speech detected. Click "Start Listening" and speak your answer.', '');
-        } else {
-            setStatus('Speech recognition error: ' + event.error, 'error');
+        console.error('❌ Speech error:', event.error);
+        
+        const errorMessages = {
+            'not-allowed': 'Microphone access denied. Please allow microphone permission.',
+            'no-speech': 'No speech detected. Please speak clearly.',
+            'audio-capture': 'No microphone found. Please check your device.',
+            'network': 'Network error. Please check your connection.',
+            'aborted': '', // Silent — user stopped it
+            'service-not-allowed': 'Speech service not available in this browser.'
+        };
+        
+        const message = errorMessages[event.error] || ('Speech error: ' + event.error);
+        
+        if (message) {
+            setStatus(message, 'error');
         }
+        
         interviewState.isListening = false;
         if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
         if (stopListeningBtn) stopListeningBtn.style.display = 'none';
-        clearTimeout(silenceTimer);
+        clearTimeout(saveTimer);
+        isSaving = false;
     };
     
+    // ============================================
+    // ON END — Cleanup
+    // ============================================
+    
     recognition.onend = function() {
+        console.log('🎤 Recognition ended');
+        
         interviewState.isListening = false;
         if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
         if (stopListeningBtn) stopListeningBtn.style.display = 'none';
-        clearTimeout(silenceTimer);
+        clearTimeout(saveTimer);
+        isSaving = false;
+        
+        // If no answer was saved and we have interim text, save it now
+        const currentAnswer = interviewState.answers[interviewState.currentIndex];
+        if (!currentAnswer || !currentAnswer.trim()) {
+            if (answerText && answerText.textContent && 
+                !answerText.textContent.includes('listening') &&
+                !answerText.textContent.includes('No answer')) {
+                // There might be text that wasn't saved
+                const text = answerText.textContent.trim();
+                if (text && text.length > 0 && !text.includes('Listening')) {
+                    interviewState.answers[interviewState.currentIndex] = text;
+                    console.log('✅ Saved on end:', text);
+                    
+                    if (interviewState.isInterviewActive && nextQuestionBtn) {
+                        nextQuestionBtn.disabled = false;
+                        setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
+                    }
+                }
+            }
+        }
     };
+    
+    // ============================================
+    // HANDLE BROWSER AUTO-RESTART (Chrome sometimes ends recognition)
+    // ============================================
+    
+    if (!BROWSER_INFO.isMobile) {
+        // On desktop, if recognition ends unexpectedly and user is still in listening mode
+        const originalOnEnd = recognition.onend;
+        recognition.onend = function() {
+            originalOnEnd.call(this);
+            
+            // Auto-restart on desktop if user is still supposed to be listening
+            if (interviewState.isListening && !isSaving) {
+                console.log('🔄 Auto-restarting recognition...');
+                setTimeout(function() {
+                    if (interviewState.isListening) {
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            console.log('Could not restart:', e.message);
+                        }
+                    }
+                }, 100);
+            }
+        };
+    }
     
     return true;
 }
 
 function startListening() {
+    // Check browser support first
+    if (!BROWSER_INFO.supportsSpeech) {
+        setStatus(
+            'Speech recognition is not supported in this browser. ' +
+            'Please use Chrome, Edge, or Safari.',
+            'error'
+        );
+        return;
+    }
+    
+    // Initialize recognition if needed
     if (!recognition) {
         if (!initSpeechRecognition()) {
             return;
         }
     }
     
-    // 🔥 Clear any previous answer for this question when starting fresh
-    // (uncomment the line below if you want each listen to start fresh)
-    // interviewState.answers[interviewState.currentIndex] = '';
+    // Prevent starting if already listening
+    if (interviewState.isListening) {
+        console.log('Already listening');
+        return;
+    }
     
     try {
-        recognition.start();
-        interviewState.isListening = true;
-        if (startListeningBtn) startListeningBtn.style.display = 'none';
-        if (stopListeningBtn) stopListeningBtn.style.display = 'inline-block';
-        if (answerDisplay) answerDisplay.style.display = 'block';
-        
-        // Show what we have so far (if resuming)
-        const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
-        if (answerText) {
-            answerText.textContent = currentAnswer 
-                ? currentAnswer + ' (listening for more...)' 
-                : 'Listening... speak your answer clearly.';
-        }
-        
-        setStatus('Listening... speak now', 'listening');
-    } catch (error) {
-        console.error('Failed to start listening:', error);
-        if (error.message.includes('already started')) {
+        // Stop any existing recognition session
+        try {
             recognition.stop();
-            setTimeout(() => startListening(), 200);
-        }
+        } catch (e) {}
+        
+        // Small delay to ensure clean start (especially important for iOS)
+        setTimeout(function() {
+            try {
+                recognition.start();
+                
+                interviewState.isListening = true;
+                if (startListeningBtn) startListeningBtn.style.display = 'none';
+                if (stopListeningBtn) stopListeningBtn.style.display = 'inline-block';
+                if (answerDisplay) answerDisplay.style.display = 'block';
+                
+                // Show existing answer or prompt
+                const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
+                if (answerText) {
+                    answerText.textContent = currentAnswer 
+                        ? currentAnswer + ' (listening for more...)' 
+                        : 'Listening... speak your answer clearly.';
+                }
+                
+                setStatus('Listening... speak now', 'listening');
+                
+            } catch (error) {
+                console.error('Failed to start:', error);
+                
+                if (error.message.includes('already started')) {
+                    // It's already running, just update UI
+                    interviewState.isListening = true;
+                    if (startListeningBtn) startListeningBtn.style.display = 'none';
+                    if (stopListeningBtn) stopListeningBtn.style.display = 'inline-block';
+                } else {
+                    setStatus('Could not start listening: ' + error.message, 'error');
+                }
+            }
+        }, BROWSER_INFO.isIOS ? 300 : 50); // Longer delay for iOS
+        
+    } catch (error) {
+        console.error('Start listening error:', error);
+        setStatus('Could not start listening. Please try again.', 'error');
     }
 }
 
 function stopListening() {
-    if (recognition && interviewState.isListening) {
+    if (recognition) {
         try {
             recognition.stop();
-        } catch (e) {}
-        interviewState.isListening = false;
-        if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
-        if (stopListeningBtn) stopListeningBtn.style.display = 'none';
-        setStatus('Stopped listening. Click "Start Listening" to try again.', '');
+        } catch (e) {
+            // Ignore errors on stop
+        }
     }
+    
+    interviewState.isListening = false;
+    if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
+    if (stopListeningBtn) stopListeningBtn.style.display = 'none';
+    
+    setStatus('Stopped listening. Click "Start Listening" to try again.', '');
 }
 
 // ============================================
@@ -1669,6 +1887,7 @@ function showPrivacyModal() {
         console.log('🔒 Privacy modal shown');
     }
 }
+
 // ============================================
 // INITIALIZATION LOG
 // ============================================
