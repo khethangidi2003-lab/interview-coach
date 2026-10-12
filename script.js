@@ -20,10 +20,10 @@ let interviewState = {
 
 let availableVoices = [];
 
-// 🔥 Preload voices as soon as the page loads
+// Preload voices as soon as the page loads
 function loadVoices() {
     availableVoices = window.speechSynthesis.getVoices();
-    console.log(`✅ Loaded ${availableVoices.length} voices`);
+    console.log(`Loaded ${availableVoices.length} voices`);
 }
 
 if ('speechSynthesis' in window) {
@@ -40,7 +40,7 @@ if ('speechSynthesis' in window) {
 
 let recognition = null;
 
-// 🔥 Detect browser/device for adaptive behavior
+// Detect browser/device for adaptive behavior
 const BROWSER_INFO = (function() {
     const ua = navigator.userAgent;
     return {
@@ -160,7 +160,7 @@ async function initFaceDetector() {
             return false;
         }
         
-        // 🔥 Reduce camera quality on mobile
+        // Reduce camera quality on mobile
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
         faceDetector = new FaceDetector();
@@ -254,9 +254,9 @@ function initSpeechRecognition() {
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 1;
     
-    // 🔥 iOS Safari needs continuous = false (it doesn't handle continuous well)
-    // 🔥 Android Chrome works better with continuous = false too (avoids the rebuild bug)
-    // 🔥 Desktop Chrome/Edge work well with continuous = true
+    // iOS Safari needs continuous = false (it doesn't handle continuous well)
+    // Android Chrome works better with continuous = false too (avoids the rebuild bug)
+    // Desktop Chrome/Edge work well with continuous = true
     if (BROWSER_INFO.isIOS || BROWSER_INFO.isAndroid) {
         recognition.continuous = false;
         recognition.interimResults = true;
@@ -268,7 +268,7 @@ function initSpeechRecognition() {
         recognition.interimResults = true;
     }
     
-    console.log('🎤 Recognition config:', {
+    console.log('Recognition config:', {
         continuous: recognition.continuous,
         interimResults: recognition.interimResults,
         lang: recognition.lang
@@ -277,17 +277,18 @@ function initSpeechRecognition() {
     // ============================================
     // STATE VARIABLES (per recognition session)
     // ============================================
-    
     let saveTimer = null;            // Debounce timer
     let isSaving = false;            // Prevent double-saves
+    let committedAtStart = '';       // Snapshot of answer before this session
     
     // ============================================
     // ON START — Reset session state
     // ============================================
-    
     recognition.onstart = function() {
-        console.log('🎤 Recognition started');
-        
+        console.log('Recognition started');
+
+        // 🔥 Capture the answer BEFORE this session started
+        committedAtStart = interviewState.answers[interviewState.currentIndex] || '';
         // Clear any pending save
         clearTimeout(saveTimer);
         isSaving = false;
@@ -298,101 +299,75 @@ function initSpeechRecognition() {
     // ============================================
     
     recognition.onresult = function(event) {
-        clearTimeout(saveTimer);
+    clearTimeout(saveTimer);
+    
+    // Rebuild transcript of this session from event.results
+    let interimText = '';
+    let finalText = '';
+    
+    for (let i = 0; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+            finalText += transcript + ' ';
+        } else {
+            interimText += transcript;
+        }
+    }
+    
+    finalText = finalText.replace(/\s+/g, ' ').trim();
+    interimText = interimText.replace(/\s+/g, ' ').trim();
+    
+    const sessionText = finalText || interimText;
+    
+    // Build display text: committed (before session) + current session
+    const displayText = sessionText
+        ? (committedAtStart ? committedAtStart + ' ' + sessionText : sessionText)
+        : committedAtStart;
+    
+    // Show live preview
+    if (answerText) {
+        if (interimText && !finalText) {
+            answerText.textContent = displayText + ' (listening...)';
+        } else {
+            answerText.textContent = displayText;
+        }
+    }
+    
+    // Debounced save
+    saveTimer = setTimeout(function() {
+        if (isSaving) return;
+        isSaving = true;
         
-        // ============================================
-        // STRATEGY: Rebuild full transcript from all results
-        // This works universally because we don't trust isFinal
-        // ============================================
-        
-        let interimText = '';
-        let finalText = '';
-        
-        // Loop through ALL results (not just from resultIndex)
-        // This handles both desktop (accumulated) and mobile (reset) behavior
-        for (let i = 0; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
+        if (sessionText) {
+            const finalAnswer = committedAtStart
+                ? (committedAtStart + ' ' + sessionText).replace(/\s+/g, ' ').trim()
+                : sessionText;
             
-            if (event.results[i].isFinal) {
-                finalText += transcript + ' ';
-            } else {
-                interimText += transcript;
+            interviewState.answers[interviewState.currentIndex] = finalAnswer;
+            
+            if (answerText) {
+                answerText.textContent = finalAnswer;
+            }
+            
+            console.log('✅ Answer saved:', finalAnswer);
+            
+            if (interviewState.isInterviewActive) {
+                setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
+                if (nextQuestionBtn) nextQuestionBtn.disabled = false;
             }
         }
         
-        // Clean up
-        finalText = finalText.replace(/\s+/g, ' ').trim();
-        interimText = interimText.replace(/\s+/g, ' ').trim();
-        
-        // ============================================
-        // BUILD THE DISPLAY TEXT
-        // ============================================
-        
-        // The "committed" part is what was in the answer before this session
-        const committedPart = interviewState.answers[interviewState.currentIndex] || '';
-        
-        // The "new" part is what we've heard this session
-        const newPart = finalText || interimText;
-        
-        // Full text to display (committed + new)
-        const displayText = newPart 
-            ? (committedPart ? committedPart + ' ' + newPart : newPart)
-            : committedPart;
-        
-        // Show live preview
-        if (answerText) {
-            if (interimText && !finalText) {
-                answerText.textContent = displayText + ' (listening...)';
-            } else {
-                answerText.textContent = displayText;
-            }
+        if (interviewState.isListening) {
+            setTimeout(function() {
+                if (interviewState.isListening) {
+                    try { recognition.stop(); } catch (e) {}
+                }
+            }, 500);
         }
         
-        // ============================================
-        // SAVE LOGIC — Debounced
-        // ============================================
-        
-        saveTimer = setTimeout(function() {
-            if (isSaving) return;
-            isSaving = true;
-            
-            // Determine final text to save
-            const textToSave = finalText || interimText;
-            
-            if (textToSave) {
-                // Build the final answer: committed + new
-                const finalAnswer = committedPart 
-                    ? (committedPart + ' ' + textToSave).replace(/\s+/g, ' ').trim()
-                    : textToSave;
-                
-                interviewState.answers[interviewState.currentIndex] = finalAnswer;
-                
-                if (answerText) {
-                    answerText.textContent = finalAnswer;
-                }
-                
-                console.log('✅ Answer saved:', finalAnswer);
-                
-                if (interviewState.isInterviewActive) {
-                    setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
-                    if (nextQuestionBtn) nextQuestionBtn.disabled = false;
-                }
-            }
-            
-            // Auto-stop after silence (longer on mobile)
-            if (interviewState.isListening) {
-                setTimeout(function() {
-                    if (interviewState.isListening) {
-                        try {
-                            recognition.stop();
-                        } catch (e) {}
-                    }
-                }, 500);
-            }
-            
-            isSaving = false;
-        }, BROWSER_INFO.isMobile ? 2500 : 1800);
-    };
+        isSaving = false;
+    }, BROWSER_INFO.isMobile ? 2500 : 1800);
+};
     
     // ============================================
     // ON ERROR — Graceful handling
@@ -446,7 +421,7 @@ function initSpeechRecognition() {
                 const text = answerText.textContent.trim();
                 if (text && text.length > 0 && !text.includes('Listening')) {
                     interviewState.answers[interviewState.currentIndex] = text;
-                    console.log('✅ Saved on end:', text);
+                    console.log('Saved on end:', text);
                     
                     if (interviewState.isInterviewActive && nextQuestionBtn) {
                         nextQuestionBtn.disabled = false;
@@ -469,7 +444,7 @@ function initSpeechRecognition() {
             
             // Auto-restart on desktop if user is still supposed to be listening
             if (interviewState.isListening && !isSaving) {
-                console.log('🔄 Auto-restarting recognition...');
+                console.log('Auto-restarting recognition...');
                 setTimeout(function() {
                     if (interviewState.isListening) {
                         try {
@@ -1725,7 +1700,7 @@ document.addEventListener('DOMContentLoaded', function() {
             break;
             
         case 'faq':
-            console.log('❓ FAQ page');
+            console.log('FAQ page');
             document.querySelectorAll('.faq-question').forEach(button => {
                 button.addEventListener('click', function() {
                     const item = this.closest('.faq-item');
@@ -1756,15 +1731,15 @@ function checkPrivacyConsent() {
     const hasAccepted = localStorage.getItem('privacyConsent');
     const modal = document.getElementById('privacyModal');
     
-    console.log('🔍 Privacy check:', hasAccepted ? 'Accepted' : 'Not accepted');
+    console.log('Privacy check:', hasAccepted ? 'Accepted' : 'Not accepted');
     
     if (!hasAccepted && modal) {
-        // 🔥 Show modal using class (smooth, no blink)
+        // Show modal using class (smooth, no blink)
         modal.classList.add('active');
-        console.log('✅ Modal shown');
+        console.log('Modal shown');
     } else if (modal) {
         modal.classList.remove('active');
-        console.log('❌ Modal hidden');
+        console.log('Modal hidden');
     }
 }
 
@@ -1773,7 +1748,7 @@ function acceptPrivacy() {
     const modal = document.getElementById('privacyModal');
     if (modal) {
         modal.classList.remove('active');
-        console.log('✅ Privacy accepted');
+        console.log('Privacy accepted');
     }
 }
 
@@ -1792,7 +1767,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
             acceptPrivacy();
         });
-        console.log('✅ Accept button ready');
+        console.log('Accept button ready');
     }
 });
 
@@ -1855,7 +1830,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             showPrivacyModal();
         });
-        console.log('✅ Privacy Policy link ready');
+        console.log('Privacy Policy link ready');
     }
 
     // --- Terms of Service (placeholder) ---
@@ -1865,7 +1840,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             alert('Terms of Service coming soon.');
         });
-        console.log('✅ Terms of Service link ready');
+        console.log('Terms of Service link ready');
     }
 
     // --- Contact → LinkedIn ---
@@ -1875,7 +1850,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             window.open('https://linkedin.com/in/khetha-ngidi-843841399', '_blank');
         });
-        console.log('✅ Contact link ready');
+        console.log('Contact link ready');
     }
 });
 
@@ -1884,7 +1859,7 @@ function showPrivacyModal() {
     const modal = document.getElementById('privacyModal');
     if (modal) {
         modal.classList.add('active');
-        console.log('🔒 Privacy modal shown');
+        console.log('Privacy modal shown');
     }
 }
 
