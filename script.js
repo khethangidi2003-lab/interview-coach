@@ -61,7 +61,6 @@ console.log('🌐 Browser detected:', BROWSER_INFO);
 // DOM REFERENCES (Shared across pages)
 // ============================================
 
-// These will be null on pages where they don't exist
 const jobDescriptionInput = document.getElementById('jobDescription');
 const generateBtn = document.getElementById('generateBtn');
 const resultsSection = document.getElementById('resultsSection');
@@ -92,7 +91,7 @@ const goToInterview = document.getElementById('goToInterview');
 const goToInterviewBtn = document.getElementById('goToInterviewBtn');
 
 // ============================================
-// LOADING CONTROLS — using loading3.svg
+// LOADING CONTROLS
 // ============================================
 function showLoading(message, subMessage) {
     const overlay = document.getElementById('loadingOverlay');
@@ -113,7 +112,6 @@ function hideLoading() {
     }
 }
 
-// Button loading state (optional)
 function setButtonLoading(button, isLoading, loadingText) {
     const originalText = button.textContent;
     
@@ -132,12 +130,12 @@ function setButtonLoading(button, isLoading, loadingText) {
 // ============================================
 function getCurrentPage() {
     const path = window.location.pathname;
-    if (path.includes('index.html')) return 'index';   // Landing page
-    if (path.includes('home.html')) return 'home';     // App page
+    if (path.includes('index.html')) return 'index';
+    if (path.includes('home.html')) return 'home';
     if (path.includes('interview.html')) return 'interview';
     if (path.includes('results.html')) return 'results';
     if (path.includes('faq.html')) return 'faq';
-    if (path === '/' || path === '') return 'index';   // Default to landing
+    if (path === '/' || path === '') return 'index';
     return 'index';
 }
 
@@ -159,9 +157,6 @@ async function initFaceDetector() {
             console.log('Camera elements not found, skipping face detection');
             return false;
         }
-        
-        // Reduce camera quality on mobile
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
         faceDetector = new FaceDetector();
         
@@ -205,7 +200,6 @@ function updateFocusDisplay(score, gaze) {
         gazeDirectionElement.textContent = gazeMap[gaze] || gaze;
     }
     
-    // Store focus data for feedback
     if (interviewState.isInterviewActive && 
         interviewState.focusData && 
         interviewState.focusData[interviewState.currentIndex]) {
@@ -230,15 +224,14 @@ function showNudge(message) {
 }
 
 // ============================================
-// SPEECH RECOGNITION — UNIVERSAL VERSION
+// SPEECH RECOGNITION — INITIALIZATION
 // ============================================
 
 function initSpeechRecognition() {
-    // Check for support
     if (!BROWSER_INFO.supportsSpeech) {
         setStatus(
             'Speech recognition is not supported in this browser. ' +
-            'Please use Chrome, Edge, or Safari. You can still type your answers.',
+            'Please use Chrome, Edge, or Safari.',
             'error'
         );
         return false;
@@ -247,130 +240,132 @@ function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     
-    // ============================================
-    // CONFIGURATION — ADAPTED PER BROWSER
-    // ============================================
-    
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 1;
     
-    // iOS Safari needs continuous = false (it doesn't handle continuous well)
-    // Android Chrome works better with continuous = false too (avoids the rebuild bug)
-    // Desktop Chrome/Edge work well with continuous = true
     if (BROWSER_INFO.isIOS || BROWSER_INFO.isAndroid) {
         recognition.continuous = false;
         recognition.interimResults = true;
     } else if (BROWSER_INFO.isSafari) {
         recognition.continuous = false;
-        recognition.interimResults = false; // Safari desktop doesn't like interim
+        recognition.interimResults = false;
     } else {
         recognition.continuous = true;
         recognition.interimResults = true;
     }
     
-    console.log('Recognition config:', {
+    console.log('🎤 Recognition config:', {
         continuous: recognition.continuous,
         interimResults: recognition.interimResults,
         lang: recognition.lang
     });
     
     // ============================================
-    // STATE VARIABLES (per recognition session)
+    // SESSION STATE (lives inside this function)
     // ============================================
-    let saveTimer = null;            // Debounce timer
-    let isSaving = false;            // Prevent double-saves
-    let committedAtStart = '';       // Snapshot of answer before this session
+    
+    let saveTimer = null;
+    let isSaving = false;
+    let committedAtStart = '';
+    let lockedIndex = -1;
     
     // ============================================
-    // ON START — Reset session state
+    // ON START — Lock index and snapshot the answer
     // ============================================
+    
     recognition.onstart = function() {
-        console.log('Recognition started');
-
-        // 🔥 Capture the answer BEFORE this session started
-        committedAtStart = interviewState.answers[interviewState.currentIndex] || '';
-        // Clear any pending save
+        console.log('🎤 Recognition started');
+        lockedIndex = interviewState.currentIndex;
+        committedAtStart = interviewState.answers[lockedIndex] || '';
         clearTimeout(saveTimer);
         isSaving = false;
+        console.log(`🔒 Locked to Q${lockedIndex + 1}, committed: "${committedAtStart}"`);
     };
     
     // ============================================
-    // ON RESULT — Universal handling
+    // ON RESULT — Use lockedIndex everywhere
     // ============================================
     
     recognition.onresult = function(event) {
-    clearTimeout(saveTimer);
-    
-    // Rebuild transcript of this session from event.results
-    let interimText = '';
-    let finalText = '';
-    
-    for (let i = 0; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-            finalText += transcript + ' ';
-        } else {
-            interimText += transcript;
-        }
-    }
-    
-    finalText = finalText.replace(/\s+/g, ' ').trim();
-    interimText = interimText.replace(/\s+/g, ' ').trim();
-    
-    const sessionText = finalText || interimText;
-    
-    // Build display text: committed (before session) + current session
-    const displayText = sessionText
-        ? (committedAtStart ? committedAtStart + ' ' + sessionText : sessionText)
-        : committedAtStart;
-    
-    // Show live preview
-    if (answerText) {
-        if (interimText && !finalText) {
-            answerText.textContent = displayText + ' (listening...)';
-        } else {
-            answerText.textContent = displayText;
-        }
-    }
-    
-    // Debounced save
-    saveTimer = setTimeout(function() {
-        if (isSaving) return;
-        isSaving = true;
+        clearTimeout(saveTimer);
         
-        if (sessionText) {
-            const finalAnswer = committedAtStart
-                ? (committedAtStart + ' ' + sessionText).replace(/\s+/g, ' ').trim()
-                : sessionText;
-            
-            interviewState.answers[interviewState.currentIndex] = finalAnswer;
-            
-            if (answerText) {
-                answerText.textContent = finalAnswer;
-            }
-            
-            console.log('✅ Answer saved:', finalAnswer);
-            
-            if (interviewState.isInterviewActive) {
-                setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
-                if (nextQuestionBtn) nextQuestionBtn.disabled = false;
+        if (lockedIndex < 0 || lockedIndex >= interviewState.answers.length) {
+            console.warn('⚠️ Invalid lockedIndex, ignoring result');
+            return;
+        }
+        
+        let interimText = '';
+        let finalText = '';
+        
+        for (let i = 0; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalText += transcript + ' ';
+            } else {
+                interimText += transcript;
             }
         }
         
-        if (interviewState.isListening) {
-            setTimeout(function() {
-                if (interviewState.isListening) {
-                    try { recognition.stop(); } catch (e) {}
+        finalText = finalText.replace(/\s+/g, ' ').trim();
+        interimText = interimText.replace(/\s+/g, ' ').trim();
+        
+        const sessionText = finalText || interimText;
+        
+        const displayText = sessionText
+            ? (committedAtStart ? committedAtStart + ' ' + sessionText : sessionText)
+            : committedAtStart;
+        
+        if (answerText) {
+            if (interimText && !finalText) {
+                answerText.textContent = displayText + ' (listening...)';
+            } else {
+                answerText.textContent = displayText;
+            }
+        }
+        
+        saveTimer = setTimeout(function() {
+            if (isSaving) return;
+            isSaving = true;
+            
+            if (interviewState.currentIndex !== lockedIndex) {
+                console.log(`⏭️ Skipping stale save (locked=${lockedIndex}, current=${interviewState.currentIndex})`);
+                isSaving = false;
+                return;
+            }
+            
+            if (sessionText) {
+                const finalAnswer = committedAtStart
+                    ? (committedAtStart + ' ' + sessionText).replace(/\s+/g, ' ').trim()
+                    : sessionText;
+                
+                interviewState.answers[lockedIndex] = finalAnswer;
+                
+                if (answerText) {
+                    answerText.textContent = finalAnswer;
                 }
-            }, 500);
-        }
-        
-        isSaving = false;
-    }, BROWSER_INFO.isMobile ? 2500 : 1800);
-};
+                
+                console.log(`✅ Saved to Q${lockedIndex + 1}:`, finalAnswer);
+                
+                if (interviewState.isInterviewActive) {
+                    setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
+                    if (nextQuestionBtn) nextQuestionBtn.disabled = false;
+                }
+            }
+            
+            if (interviewState.isListening) {
+                setTimeout(function() {
+                    if (interviewState.isListening) {
+                        try { recognition.stop(); } catch (e) {}
+                    }
+                }, 500);
+            }
+            
+            isSaving = false;
+        }, BROWSER_INFO.isMobile ? 2500 : 1800);
+    };
     
     // ============================================
-    // ON ERROR — Graceful handling
+    // ON ERROR
     // ============================================
     
     recognition.onerror = function(event) {
@@ -381,15 +376,12 @@ function initSpeechRecognition() {
             'no-speech': 'No speech detected. Please speak clearly.',
             'audio-capture': 'No microphone found. Please check your device.',
             'network': 'Network error. Please check your connection.',
-            'aborted': '', // Silent — user stopped it
+            'aborted': '',
             'service-not-allowed': 'Speech service not available in this browser.'
         };
         
         const message = errorMessages[event.error] || ('Speech error: ' + event.error);
-        
-        if (message) {
-            setStatus(message, 'error');
-        }
+        if (message) setStatus(message, 'error');
         
         interviewState.isListening = false;
         if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
@@ -399,70 +391,26 @@ function initSpeechRecognition() {
     };
     
     // ============================================
-    // ON END — Cleanup
+    // ON END
     // ============================================
     
     recognition.onend = function() {
         console.log('🎤 Recognition ended');
-        
         interviewState.isListening = false;
         if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
         if (stopListeningBtn) stopListeningBtn.style.display = 'none';
         clearTimeout(saveTimer);
         isSaving = false;
-        
-        // If no answer was saved and we have interim text, save it now
-        const currentAnswer = interviewState.answers[interviewState.currentIndex];
-        if (!currentAnswer || !currentAnswer.trim()) {
-            if (answerText && answerText.textContent && 
-                !answerText.textContent.includes('listening') &&
-                !answerText.textContent.includes('No answer')) {
-                // There might be text that wasn't saved
-                const text = answerText.textContent.trim();
-                if (text && text.length > 0 && !text.includes('Listening')) {
-                    interviewState.answers[interviewState.currentIndex] = text;
-                    console.log('Saved on end:', text);
-                    
-                    if (interviewState.isInterviewActive && nextQuestionBtn) {
-                        nextQuestionBtn.disabled = false;
-                        setStatus('Answer recorded. Click "Next Question" to continue.', 'success');
-                    }
-                }
-            }
-        }
     };
-    
-    // ============================================
-    // HANDLE BROWSER AUTO-RESTART (Chrome sometimes ends recognition)
-    // ============================================
-    
-    if (!BROWSER_INFO.isMobile) {
-        // On desktop, if recognition ends unexpectedly and user is still in listening mode
-        const originalOnEnd = recognition.onend;
-        recognition.onend = function() {
-            originalOnEnd.call(this);
-            
-            // Auto-restart on desktop if user is still supposed to be listening
-            if (interviewState.isListening && !isSaving) {
-                console.log('Auto-restarting recognition...');
-                setTimeout(function() {
-                    if (interviewState.isListening) {
-                        try {
-                            recognition.start();
-                        } catch (e) {
-                            console.log('Could not restart:', e.message);
-                        }
-                    }
-                }, 100);
-            }
-        };
-    }
     
     return true;
 }
 
+// ============================================
+// START LISTENING
+// ============================================
+
 function startListening() {
-    // Check browser support first
     if (!BROWSER_INFO.supportsSpeech) {
         setStatus(
             'Speech recognition is not supported in this browser. ' +
@@ -472,26 +420,22 @@ function startListening() {
         return;
     }
     
-    // Initialize recognition if needed
     if (!recognition) {
         if (!initSpeechRecognition()) {
             return;
         }
     }
     
-    // Prevent starting if already listening
     if (interviewState.isListening) {
         console.log('Already listening');
         return;
     }
     
     try {
-        // Stop any existing recognition session
         try {
             recognition.stop();
         } catch (e) {}
         
-        // Small delay to ensure clean start (especially important for iOS)
         setTimeout(function() {
             try {
                 recognition.start();
@@ -501,7 +445,6 @@ function startListening() {
                 if (stopListeningBtn) stopListeningBtn.style.display = 'inline-block';
                 if (answerDisplay) answerDisplay.style.display = 'block';
                 
-                // Show existing answer or prompt
                 const currentAnswer = interviewState.answers[interviewState.currentIndex] || '';
                 if (answerText) {
                     answerText.textContent = currentAnswer 
@@ -515,7 +458,6 @@ function startListening() {
                 console.error('Failed to start:', error);
                 
                 if (error.message.includes('already started')) {
-                    // It's already running, just update UI
                     interviewState.isListening = true;
                     if (startListeningBtn) startListeningBtn.style.display = 'none';
                     if (stopListeningBtn) stopListeningBtn.style.display = 'inline-block';
@@ -523,7 +465,7 @@ function startListening() {
                     setStatus('Could not start listening: ' + error.message, 'error');
                 }
             }
-        }, BROWSER_INFO.isIOS ? 300 : 50); // Longer delay for iOS
+        }, BROWSER_INFO.isIOS ? 300 : 50);
         
     } catch (error) {
         console.error('Start listening error:', error);
@@ -531,13 +473,15 @@ function startListening() {
     }
 }
 
+// ============================================
+// STOP LISTENING
+// ============================================
+
 function stopListening() {
     if (recognition) {
         try {
             recognition.stop();
-        } catch (e) {
-            // Ignore errors on stop
-        }
+        } catch (e) {}
     }
     
     interviewState.isListening = false;
@@ -566,7 +510,6 @@ function speakText(text, callback) {
     utterance.pitch = 1;
     utterance.volume = 1;
     
-    // 🔥 Use preloaded voices
     if (availableVoices.length === 0) {
         availableVoices = window.speechSynthesis.getVoices();
     }
@@ -605,14 +548,12 @@ function speakText(text, callback) {
 // ============================================
 
 function addGeneralQuestions(aiQuestions) {
-    // 3 general questions at the START of the interview
     const generalQuestions = [
         "Tell me about yourself and your background.",
         "Why do you think you are the best fit for this role?",
         "What are your greatest professional strengths?"
     ];
     
-    // Combine: General questions FIRST, then AI questions
     return [...generalQuestions, ...aiQuestions];
 }
 
@@ -629,7 +570,6 @@ async function generateQuestions() {
     }
     
     interviewState.jobDescription = jobDescription;
-    // Page loader
     showLoading('Generating Questions...', 'This takes about 5-10 seconds');
 
     if (generateBtn) {
@@ -638,7 +578,6 @@ async function generateQuestions() {
     }
     
     try {
-        // ✅ SUPPORTIVE COACH — not an expert
         const prompt = `
 You are a supportive interview coach helping a candidate prepare for their interview. Based on this job description, generate 7 thoughtful questions that will help the candidate practice and build confidence.
 
@@ -657,7 +596,6 @@ Job Description:
 ${jobDescription}
         `.trim();
         
-        // Call your Vercel serverless API (NO API KEY HERE!)
         const response = await fetch('/api/groq', {
             method: 'POST',
             headers: {
@@ -713,10 +651,8 @@ ${jobDescription}
             throw new Error('The AI did not return a valid list of questions.');
         }
         
-        // ✅ Add general questions at the START
         interviewState.questions = addGeneralQuestions(questions);
         
-        // Store in session storage for interview page
         sessionStorage.setItem('interviewQuestions', JSON.stringify(interviewState.questions));
         sessionStorage.setItem('jobDescription', jobDescription);
         
@@ -772,7 +708,6 @@ async function startInterview() {
     
     console.log(`${interviewState.questions.length} questions found`);
     
-    // 🔥 FIX: Hide preparation message
     const prepMessage = document.getElementById('preparationMessage');
     if (prepMessage) prepMessage.style.display = 'none';
     
@@ -808,7 +743,6 @@ async function startInterview() {
     interviewState.isInterviewActive = true;
     console.log('Interview state reset with focusData initialized');
     
-    // 🔥 FIX: Hide Start Interview button, show listening buttons
     if (startInterviewBtn) startInterviewBtn.style.display = 'none';
     if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
     if (stopListeningBtn) stopListeningBtn.style.display = 'none';
@@ -850,12 +784,9 @@ function showQuestion(index) {
     if (answerDisplay) answerDisplay.style.display = 'none';
     if (answerText) answerText.textContent = 'Waiting for you to speak...';
     
-    // FIX: Only show Start Listening button, hide Start Interview
     if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
     if (stopListeningBtn) stopListeningBtn.style.display = 'none';
     if (nextQuestionBtn) nextQuestionBtn.disabled = true;
-    
-    // FIX: Ensure Start Interview button is hidden during questions
     if (startInterviewBtn) startInterviewBtn.style.display = 'none';
     
     console.log('UI updated, now speaking question...');
@@ -869,13 +800,23 @@ function showQuestion(index) {
     });
 }
 
-function showNextQuestion() {    
+function showNextQuestion() {
     console.log('Moving to next question...');
+    
+    // Flush current answer before switching index
+    const currentAnswer = interviewState.answers[interviewState.currentIndex];
+    if (answerText && currentAnswer) {
+        interviewState.answers[interviewState.currentIndex] = currentAnswer;
+    }
+    
     stopListening();
+    
     if (startListeningBtn) startListeningBtn.style.display = 'none';
     if (stopListeningBtn) stopListeningBtn.style.display = 'none';
+    
     interviewState.currentIndex++;
     console.log(`Current index: ${interviewState.currentIndex}`);
+    
     if (interviewState.currentIndex < interviewState.questions.length) {
         showQuestion(interviewState.currentIndex);
     } else {
@@ -900,11 +841,9 @@ function showCompletionScreen() {
         } catch (e) {}
     }
     
-    // Store results in session storage for results page
     sessionStorage.setItem('interviewAnswers', JSON.stringify(interviewState.answers));
     sessionStorage.setItem('interviewFocusData', JSON.stringify(interviewState.focusData));
     
-    // Redirect to results page
     window.location.href = 'results.html';
 }
 
@@ -924,7 +863,6 @@ function endInterviewEarly() {
             } catch (e) {}
         }
         
-        // Store partial results
         sessionStorage.setItem('interviewAnswers', JSON.stringify(interviewState.answers));
         sessionStorage.setItem('interviewFocusData', JSON.stringify(interviewState.focusData));
         
@@ -976,7 +914,6 @@ function displayFullResults() {
         return;
     }
     
-    // Set the date
     const dateEl = document.getElementById('resultsDate');
     if (dateEl) {
         dateEl.textContent = new Date().toLocaleDateString('en-US', {
@@ -1064,7 +1001,6 @@ function getCameraSummary() {
 }
 
 async function getFeedback() {
-    // SHOW LOADING
     showLoading('Analyzing Your Interview...', 'This takes about 5-10 seconds');
 
     if (getFeedbackBtn) {
@@ -1091,7 +1027,6 @@ async function getFeedback() {
             transcript += `A${index + 1}: ${answer}\n\n`;
         });
 
-        // 🔥 SIMPLIFIED CAMERA SUMMARY (no gaze/eye contact)
         const cameraSummary = getCameraSummary();
 
         let cameraInsights = '';
@@ -1189,12 +1124,10 @@ Be honest but constructive. If camera data is available, incorporate the focus s
         displayFeedback(feedback);
         if (exportPdfBtn) exportPdfBtn.style.display = 'inline-block';
 
-        // HIDE LOADING — SUCCESS
         hideLoading();
 
     } catch (error) {
         console.error('Feedback error:', error);
-        // HIDE LOADING — ERROR
         hideLoading();
         if (feedbackContent) {
             feedbackContent.innerHTML = `
@@ -1326,7 +1259,6 @@ async function exportToPDF() {
     }
 
     try {
-        // Calculate focus stats (NO gaze/lookaway)
         let totalFocus = 0, focusCount = 0;
         (interviewState.focusData || []).forEach(d => {
             if (d?.focusScores?.length) {
@@ -1341,7 +1273,6 @@ async function exportToPDF() {
         const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
         const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
-        // Load logo
         let logoHTML = '';
         try {
             const logoResponse = await fetch('browserLogo.png');
@@ -1358,7 +1289,6 @@ async function exportToPDF() {
             console.warn('Logo not loaded:', e);
         }
 
-        // Build the HTML content
         let html = `
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -1367,7 +1297,6 @@ async function exportToPDF() {
   
   .report { max-width:100%; }
   
-  /* Header */
   .header { display:flex; justify-content:space-between; align-items:center; padding-bottom:16px; border-bottom:2px solid #0A1628; margin-bottom:28px; }
   .header-left { display:flex; align-items:center; gap:12px; }
   .header-left .name { font-size:18px; font-weight:600; letter-spacing:-.02em; }
@@ -1375,15 +1304,12 @@ async function exportToPDF() {
   .header-meta { text-align:right; font-size:10px; color:#8A94A3; line-height:1.6; }
   .header-logo { height:32px; width:auto; display:block; }
 
-  /* Stats */
   .stats { display:flex; gap:48px; padding:20px 0 24px; border-bottom:1px solid #E6E8EC; margin-bottom:28px; }
   .stat .value { font-size:28px; font-weight:300; letter-spacing:-.03em; line-height:1; }
   .stat .label { margin-top:6px; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#8A94A3; }
 
-  /* Sections */
   .section-title { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:#8A94A3; margin:28px 0 14px; }
 
-  /* Questions */
   .q-item { padding:0 0 14px 16px; margin-bottom:14px; border-left:1px solid #E6E8EC; border-bottom:1px solid #F1F2F5; }
   .q-item:last-child { border-bottom:none; }
   .q-item .num { font-size:9px; letter-spacing:.12em; color:#B0B7C2; }
@@ -1393,19 +1319,16 @@ async function exportToPDF() {
   .q-item .focus { margin-top:8px; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#8A94A3; }
   .q-item .focus b { font-weight:600; color:#0A1628; }
 
-  /* Feedback */
   .fb-item { padding:0 0 10px 16px; margin-bottom:10px; border-left:1px solid #E6E8EC; }
   .fb-item .label { font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#8A94A3; margin-bottom:4px; }
   .fb-item p, .fb-item li { font-size:12px; line-height:1.7; color:#445061; }
   .fb-item ul { padding-left:16px; }
   .score { font-size:36px; font-weight:300; letter-spacing:-.03em; margin-bottom:20px; }
 
-  /* Page break control */
   .no-break { page-break-inside: avoid; }
   .break-after { page-break-after: avoid; }
 </style>
 <div class="report">
-  <!-- HEADER -->
   <div class="header">
     <div class="header-left">
       ${logoHTML}
@@ -1417,16 +1340,13 @@ async function exportToPDF() {
     <div class="header-meta">${dateStr}<br>${answered} of ${total} answered</div>
   </div>
 
-  <!-- STATS -->
   <div class="stats">
     <div class="stat"><div class="value">${avgFocus}%</div><div class="label">Average focus</div></div>
     <div class="stat"><div class="value">${answered}<span style="color:#C3C9D2">/${total}</span></div><div class="label">Questions answered</div></div>
   </div>
 
-  <!-- QUESTIONS -->
   <div class="section-title">Questions &amp; Answers</div>`;
 
-        // Questions (with page-break protection)
         interviewState.questions.forEach((question, i) => {
             const answer = interviewState.answers[i] || '';
             const has = !!answer.trim();
@@ -1445,7 +1365,6 @@ async function exportToPDF() {
   </div>`;
         });
 
-        // FEEDBACK
         if (feedbackContent?.innerHTML) {
             const scoreEl = feedbackContent.querySelector('.feedback-score');
             const sections = feedbackContent.querySelectorAll('.feedback-section');
@@ -1474,13 +1393,11 @@ async function exportToPDF() {
         html += `
 </div>`;
 
-        // Create the PDF with proper margins
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         
-        // Margins (in mm)
         const marginTop = 14;
         const marginBottom = 14;
         const marginLeft = 12;
@@ -1488,7 +1405,6 @@ async function exportToPDF() {
         const contentWidth = pageWidth - marginLeft - marginRight;
         const contentHeight = pageHeight - marginTop - marginBottom;
 
-        // Render HTML to canvas
         const container = document.createElement('div');
         container.innerHTML = html;
         Object.assign(container.style, { 
@@ -1512,7 +1428,6 @@ async function exportToPDF() {
         });
         document.body.removeChild(container);
 
-        // Split canvas into pages with proper margins
         const imgWidth = canvas.width;
         const imgHeight = canvas.height;
         const ratio = contentWidth / imgWidth;
@@ -1525,7 +1440,6 @@ async function exportToPDF() {
         while (currentY < imgHeight) {
             const sliceHeight = Math.min(pageContentHeight, imgHeight - currentY);
             
-            // Create slice canvas
             const slice = document.createElement('canvas');
             slice.width = imgWidth;
             slice.height = sliceHeight;
@@ -1534,27 +1448,22 @@ async function exportToPDF() {
             ctx.fillRect(0, 0, slice.width, slice.height);
             ctx.drawImage(canvas, 0, currentY, imgWidth, sliceHeight, 0, 0, imgWidth, sliceHeight);
 
-            // Add page (first page already exists)
             if (currentY > 0) {
                 pdf.addPage();
             }
 
-            // Add the content
             const imgData = slice.toDataURL('image/jpeg', 0.92);
             const imgWidthMm = contentWidth;
             const imgHeightMm = (sliceHeight / imgWidth) * contentWidth;
             
             pdf.addImage(imgData, 'JPEG', marginLeft, marginTop, imgWidthMm, imgHeightMm);
 
-            // Add footer with page number
             const footerY = pageHeight - 10;
             pdf.setFontSize(8);
             pdf.setTextColor('#A3ABB8');
             
-            // Left footer: Copyright
             pdf.text(`© ${new Date().getFullYear()} Interview Coach`, marginLeft, footerY);
             
-            // Right footer: Created by + page number
             const rightText = `Created by Khetha Ngidi  •  Page ${pageNum} of ${totalPages}`;
             const rightTextWidth = pdf.getStringUnitWidth(rightText) * 8 / pdf.internal.scaleFactor;
             pdf.text(rightText, pageWidth - marginRight - rightTextWidth, footerY);
@@ -1592,20 +1501,17 @@ function setStatus(message, type) {
 }
 
 // ============================================
-// SINGLE DOMContentLoaded LISTENER (EVERYTHING IN ONE PLACE)
+// DOMContentLoaded — ALL PAGE LOGIC
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
     const page = getCurrentPage();
     console.log(`Page: ${page}`);
     
-    // --- PRIVACY MODAL (HIGHEST PRIORITY) ---
-    // Show modal after a tiny delay
     setTimeout(function() {
         checkPrivacyConsent();
     }, 50);
     
-    // Accept button
     const acceptBtn = document.getElementById('acceptPrivacyBtn');
     if (acceptBtn) {
         acceptBtn.addEventListener('click', function(e) {
@@ -1616,7 +1522,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Accept button ready');
     }
     
-    // --- PAGE-SPECIFIC LOGIC ---
     switch(page) {
         case 'index':
             console.log('Landing page');
@@ -1724,7 +1629,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================
-// PRIVACY MODAL — No Blinking!
+// PRIVACY MODAL
 // ============================================
 
 function checkPrivacyConsent() {
@@ -1734,7 +1639,6 @@ function checkPrivacyConsent() {
     console.log('Privacy check:', hasAccepted ? 'Accepted' : 'Not accepted');
     
     if (!hasAccepted && modal) {
-        // Show modal using class (smooth, no blink)
         modal.classList.add('active');
         console.log('Modal shown');
     } else if (modal) {
@@ -1752,14 +1656,11 @@ function acceptPrivacy() {
     }
 }
 
-// Call when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Show modal after a tiny delay (ensures DOM is ready)
     setTimeout(function() {
         checkPrivacyConsent();
     }, 50);
     
-    // Accept button
     const acceptBtn = document.getElementById('acceptPrivacyBtn');
     if (acceptBtn) {
         acceptBtn.addEventListener('click', function(e) {
@@ -1823,7 +1724,6 @@ setTimeout(function() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Privacy Policy ---
     const privacyLink = document.getElementById('privacyLink');
     if (privacyLink) {
         privacyLink.addEventListener('click', function(e) {
@@ -1833,7 +1733,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Privacy Policy link ready');
     }
 
-    // --- Terms of Service (placeholder) ---
     const termsLink = document.getElementById('termsLink');
     if (termsLink) {
         termsLink.addEventListener('click', function(e) {
@@ -1843,7 +1742,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Terms of Service link ready');
     }
 
-    // --- Contact → LinkedIn ---
     const contactLink = document.getElementById('contactLink');
     if (contactLink) {
         contactLink.addEventListener('click', function(e) {
@@ -1854,7 +1752,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Function to show privacy modal (can be called from anywhere)
 function showPrivacyModal() {
     const modal = document.getElementById('privacyModal');
     if (modal) {
