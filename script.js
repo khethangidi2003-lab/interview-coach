@@ -1251,11 +1251,88 @@ function displayFeedback(feedback) {
 // PDF EXPORT
 // ============================================
 
+// Opens the modal and waits for the user to confirm details
+function promptForPDFDetails() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('pdfDetailsModal');
+        const nameInput = document.getElementById('pdfName');
+        const surnameInput = document.getElementById('pdfSurname');
+        const positionInput = document.getElementById('pdfPosition');
+        const cancelBtn = document.getElementById('pdfCancelBtn');
+        const confirmBtn = document.getElementById('pdfConfirmBtn');
+
+        if (!modal) {
+            // If modal not present, proceed without details
+            resolve({ name: '', surname: '', position: '' });
+            return;
+        }
+
+        // Reset fields
+        nameInput.value = '';
+        surnameInput.value = '';
+        positionInput.value = '';
+
+        modal.classList.add('active');
+        setTimeout(() => nameInput.focus(), 50);
+
+        const cleanup = () => {
+            modal.classList.remove('active');
+            confirmBtn.removeEventListener('click', onConfirm);
+            cancelBtn.removeEventListener('click', onCancel);
+            modal.removeEventListener('click', onBackdrop);
+            document.removeEventListener('keydown', onKey);
+        };
+
+        const onConfirm = () => {
+            const name = nameInput.value.trim();
+            const surname = surnameInput.value.trim();
+            const position = positionInput.value.trim();
+
+            if (!name || !surname) {
+                // Simple inline validation
+                if (!name) nameInput.style.borderColor = 'var(--danger)';
+                if (!surname) surnameInput.style.borderColor = 'var(--danger)';
+                return;
+            }
+
+            cleanup();
+            resolve({ name, surname, position });
+        };
+
+        const onCancel = () => {
+            cleanup();
+            resolve(null); // null = user cancelled
+        };
+
+        const onBackdrop = (e) => {
+            if (e.target === modal) onCancel();
+        };
+
+        const onKey = (e) => {
+            if (e.key === 'Escape') onCancel();
+            if (e.key === 'Enter') onConfirm();
+        };
+
+        confirmBtn.addEventListener('click', onConfirm);
+        cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey);
+    });
+}
+
 async function exportToPDF() {
+    // 🔥 Step 1: Ask for candidate details first
+    const details = await promptForPDFDetails();
+
+    if (!details) {
+        // User cancelled — do nothing
+        return;
+    }
+
     showLoading('Generating PDF...', 'This takes about 3-5 seconds');
-    if (exportPdfBtn) { 
-        exportPdfBtn.textContent = 'Generating PDF...'; 
-        exportPdfBtn.disabled = true; 
+    if (exportPdfBtn) {
+        exportPdfBtn.textContent = 'Generating PDF...';
+        exportPdfBtn.disabled = true;
     }
 
     try {
@@ -1272,6 +1349,10 @@ async function exportToPDF() {
         const total = interviewState.questions.length;
         const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
         const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+
+        // Candidate details
+        const candidateName = `${details.name} ${details.surname}`.trim();
+        const candidatePosition = details.position || '';
 
         let logoHTML = '';
         try {
@@ -1294,21 +1375,26 @@ async function exportToPDF() {
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Inter',Arial,sans-serif; color:#0A1628; background:#fff; padding:40px 48px; -webkit-font-smoothing:antialiased; }
-  
+
   .report { max-width:100%; }
-  
-  .header { display:flex; justify-content:space-between; align-items:center; padding-bottom:16px; border-bottom:2px solid #0A1628; margin-bottom:28px; }
+
+  .header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:16px; border-bottom:2px solid #0A1628; margin-bottom:20px; }
   .header-left { display:flex; align-items:center; gap:12px; }
   .header-left .name { font-size:18px; font-weight:600; letter-spacing:-.02em; }
   .header-kicker { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:#8A94A3; }
   .header-meta { text-align:right; font-size:10px; color:#8A94A3; line-height:1.6; }
   .header-logo { height:32px; width:auto; display:block; }
 
-  .stats { display:flex; gap:48px; padding:20px 0 24px; border-bottom:1px solid #E6E8EC; margin-bottom:28px; }
-  .stat .value { font-size:28px; font-weight:300; letter-spacing:-.03em; line-height:1; }
+  .candidate-block { margin-bottom:24px; padding:14px 18px; background:#F7F8FA; border-left:3px solid #0A1628; border-radius:0 4px 4px 0; }
+  .candidate-block .candidate-name { font-size:16px; font-weight:600; color:#0A1628; letter-spacing:-.01em; }
+  .candidate-block .candidate-position { font-size:12px; color:#5A6675; margin-top:3px; }
+  .candidate-block .candidate-kicker { font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:#8A94A3; margin-bottom:4px; }
+
+  .stats { display:flex; gap:48px; padding:16px 0 20px; border-bottom:1px solid #E6E8EC; margin-bottom:24px; }
+  .stat .value { font-size:26px; font-weight:300; letter-spacing:-.03em; line-height:1; }
   .stat .label { margin-top:6px; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#8A94A3; }
 
-  .section-title { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:#8A94A3; margin:28px 0 14px; }
+  .section-title { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:#8A94A3; margin:26px 0 14px; }
 
   .q-item { padding:0 0 14px 16px; margin-bottom:14px; border-left:1px solid #E6E8EC; border-bottom:1px solid #F1F2F5; }
   .q-item:last-child { border-bottom:none; }
@@ -1316,14 +1402,18 @@ async function exportToPDF() {
   .q-item .question { font-size:13px; font-weight:600; line-height:1.5; margin:3px 0 6px; }
   .q-item .answer { font-size:12px; line-height:1.7; color:#445061; }
   .q-item .answer.empty { color:#A3ABB8; font-style:italic; }
-  .q-item .focus { margin-top:8px; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#8A94A3; }
-  .q-item .focus b { font-weight:600; color:#0A1628; }
+
+  .focus-block { padding:14px 18px; background:#F7F8FA; border-radius:4px; margin-bottom:16px; display:flex; align-items:center; gap:20px; }
+  .focus-block .focus-value { font-size:22px; font-weight:300; letter-spacing:-.03em; color:#0A1628; }
+  .focus-block .focus-label { font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:#8A94A3; margin-top:2px; }
+  .focus-block .focus-bar { flex:1; height:4px; background:#E6E8EC; border-radius:2px; overflow:hidden; }
+  .focus-block .focus-bar-fill { height:100%; border-radius:2px; }
 
   .fb-item { padding:0 0 10px 16px; margin-bottom:10px; border-left:1px solid #E6E8EC; }
   .fb-item .label { font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#8A94A3; margin-bottom:4px; }
   .fb-item p, .fb-item li { font-size:12px; line-height:1.7; color:#445061; }
   .fb-item ul { padding-left:16px; }
-  .score { font-size:36px; font-weight:300; letter-spacing:-.03em; margin-bottom:20px; }
+  .score { font-size:36px; font-weight:300; letter-spacing:-.03em; margin-bottom:16px; }
 
   .no-break { page-break-inside: avoid; }
   .break-after { page-break-after: avoid; }
@@ -1340,6 +1430,12 @@ async function exportToPDF() {
     <div class="header-meta">${dateStr}<br>${answered} of ${total} answered</div>
   </div>
 
+  <div class="candidate-block">
+    <div class="candidate-kicker">Candidate</div>
+    <div class="candidate-name">${esc(candidateName)}</div>
+    ${candidatePosition ? `<div class="candidate-position">Applying for: ${esc(candidatePosition)}</div>` : ''}
+  </div>
+
   <div class="stats">
     <div class="stat"><div class="value">${avgFocus}%</div><div class="label">Average focus</div></div>
     <div class="stat"><div class="value">${answered}<span style="color:#C3C9D2">/${total}</span></div><div class="label">Questions answered</div></div>
@@ -1350,20 +1446,17 @@ async function exportToPDF() {
         interviewState.questions.forEach((question, i) => {
             const answer = interviewState.answers[i] || '';
             const has = !!answer.trim();
-            const d = interviewState.focusData?.[i];
-            let focus = '';
-            if (d) {
-                const f = d.focusScores?.length ? Math.round(d.focusScores.reduce((a, b) => a + b, 0) / d.focusScores.length) : 0;
-                focus = `<div class="focus">Focus: <b>${f}%</b></div>`;
-            }
             html += `
   <div class="q-item no-break">
     <div class="num">Q${String(i + 1).padStart(2, '0')}</div>
     <div class="question">${esc(question)}</div>
     <div class="answer${has ? '' : ' empty'}">${has ? esc(answer) : 'No answer provided'}</div>
-    ${focus}
   </div>`;
         });
+
+        // ============================================
+        // AI FEEDBACK (with focus at the top)
+        // ============================================
 
         if (feedbackContent?.innerHTML) {
             const scoreEl = feedbackContent.querySelector('.feedback-score');
@@ -1374,6 +1467,24 @@ async function exportToPDF() {
                     const scoreText = esc(scoreEl.textContent.trim());
                     html += `<div class="score">${scoreText}</div>`;
                 }
+
+                // 🔥 Focus block moved here — shown at top of feedback
+                if (avgFocus > 0) {
+                    let focusColor = '#48bb78';
+                    if (avgFocus < 70) focusColor = '#f6ad55';
+                    if (avgFocus < 50) focusColor = '#fc8181';
+                    html += `
+  <div class="focus-block no-break">
+    <div>
+      <div class="focus-value">${avgFocus}%</div>
+      <div class="focus-label">Average Eye Focus</div>
+    </div>
+    <div class="focus-bar">
+      <div class="focus-bar-fill" style="width:${avgFocus}%; background:${focusColor};"></div>
+    </div>
+  </div>`;
+                }
+
                 sections.forEach(section => {
                     const title = section.querySelector('h4');
                     const content = section.querySelector('p, ul');
@@ -1397,7 +1508,7 @@ async function exportToPDF() {
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
-        
+
         const marginTop = 14;
         const marginBottom = 14;
         const marginLeft = 12;
@@ -1407,21 +1518,21 @@ async function exportToPDF() {
 
         const container = document.createElement('div');
         container.innerHTML = html;
-        Object.assign(container.style, { 
-            position: 'fixed', 
-            left: '-10000px', 
-            top: '0', 
-            width: '750px', 
+        Object.assign(container.style, {
+            position: 'fixed',
+            left: '-10000px',
+            top: '0',
+            width: '750px',
             background: '#fff',
             padding: '0'
         });
         document.body.appendChild(container);
         await new Promise(r => setTimeout(r, 150));
 
-        const canvas = await html2canvas(container, { 
-            scale: 2, 
-            useCORS: true, 
-            logging: false, 
+        const canvas = await html2canvas(container, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
             backgroundColor: '#FFFFFF',
             windowWidth: 750,
             height: container.scrollHeight
@@ -1432,14 +1543,14 @@ async function exportToPDF() {
         const imgHeight = canvas.height;
         const ratio = contentWidth / imgWidth;
         const pageContentHeight = contentHeight / ratio;
-        
+
         let currentY = 0;
         let pageNum = 1;
         const totalPages = Math.ceil(imgHeight / pageContentHeight);
 
         while (currentY < imgHeight) {
             const sliceHeight = Math.min(pageContentHeight, imgHeight - currentY);
-            
+
             const slice = document.createElement('canvas');
             slice.width = imgWidth;
             slice.height = sliceHeight;
@@ -1455,15 +1566,15 @@ async function exportToPDF() {
             const imgData = slice.toDataURL('image/jpeg', 0.92);
             const imgWidthMm = contentWidth;
             const imgHeightMm = (sliceHeight / imgWidth) * contentWidth;
-            
+
             pdf.addImage(imgData, 'JPEG', marginLeft, marginTop, imgWidthMm, imgHeightMm);
 
             const footerY = pageHeight - 10;
             pdf.setFontSize(8);
             pdf.setTextColor('#A3ABB8');
-            
+
             pdf.text(`© ${new Date().getFullYear()} Interview Coach`, marginLeft, footerY);
-            
+
             const rightText = `Created by Khetha Ngidi  •  Page ${pageNum} of ${totalPages}`;
             const rightTextWidth = pdf.getStringUnitWidth(rightText) * 8 / pdf.internal.scaleFactor;
             pdf.text(rightText, pageWidth - marginRight - rightTextWidth, footerY);
@@ -1480,9 +1591,9 @@ async function exportToPDF() {
         hideLoading();
         alert('Failed to generate PDF. Error: ' + error.message);
     } finally {
-        if (exportPdfBtn) { 
-            exportPdfBtn.textContent = 'Export as PDF'; 
-            exportPdfBtn.disabled = false; 
+        if (exportPdfBtn) {
+            exportPdfBtn.textContent = 'Export as PDF';
+            exportPdfBtn.disabled = false;
         }
     }
 }

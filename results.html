@@ -54,7 +54,33 @@
         </section>
 
     </div>
+<!-- PDF Candidate Details Modal -->
+<div id="pdfDetailsModal" class="pdf-modal-overlay">
+    <div class="pdf-modal">
+        <h3>Report Details</h3>
+        <p class="pdf-modal-sub">These details will appear on your PDF report.</p>
 
+        <div class="pdf-modal-field">
+            <label for="pdfName">Candidate Name</label>
+            <input type="text" id="pdfName" placeholder="e.g. Khetha Ngidi" autocomplete="name">
+        </div>
+
+        <div class="pdf-modal-field">
+            <label for="pdfSurname">Candidate Surname</label>
+            <input type="text" id="pdfSurname" placeholder="e.g. Ngidi" autocomplete="family-name">
+        </div>
+
+        <div class="pdf-modal-field">
+            <label for="pdfPosition">Position interviewed For</label>
+            <input type="text" id="pdfPosition" placeholder="e.g. Software Developer" autocomplete="organization-title">
+        </div>
+
+        <div class="pdf-modal-actions">
+            <button id="pdfCancelBtn" class="btn btn-outline btn-sm">Cancel</button>
+            <button id="pdfConfirmBtn" class="btn btn-primary btn-sm">Generate PDF</button>
+        </div>
+    </div>
+</div>
     <!-- FOOTER -->
     <footer class="landing-footer">
         <div class="footer-inner">
