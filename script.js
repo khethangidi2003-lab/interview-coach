@@ -1433,7 +1433,7 @@ async function exportToPDF() {
   <div class="candidate-block">
     <div class="candidate-kicker">Candidate</div>
     <div class="candidate-name">${esc(candidateName)}</div>
-    ${candidatePosition ? `<div class="candidate-position">Applying for: ${esc(candidatePosition)}</div>` : ''}
+    ${candidatePosition ? `<div class="candidate-position">interviewed for: ${esc(candidatePosition)}</div>` : ''}
   </div>
 
   <div class="stats">
