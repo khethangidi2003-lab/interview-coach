@@ -462,14 +462,14 @@ function startListening() {
                     if (startListeningBtn) startListeningBtn.style.display = 'none';
                     if (stopListeningBtn) stopListeningBtn.style.display = 'inline-block';
                 } else {
-                    setStatus('Could not start listening: ' + error.message, 'error');
+                    setStatus('Could not start speaking: ' + error.message, 'error');
                 }
             }
         }, BROWSER_INFO.isIOS ? 300 : 50);
         
     } catch (error) {
-        console.error('Start listening error:', error);
-        setStatus('Could not start listening. Please try again.', 'error');
+        console.error('Start speaking error:', error);
+        setStatus('Could not start speaking. Please try again.', 'error');
     }
 }
 
@@ -488,7 +488,7 @@ function stopListening() {
     if (startListeningBtn) startListeningBtn.style.display = 'inline-block';
     if (stopListeningBtn) stopListeningBtn.style.display = 'none';
     
-    setStatus('Stopped listening. Click "Start Listening" to try again.', '');
+    setStatus('Stopped speaking. Click "Start speaking" to try again.', '');
 }
 
 // ============================================
@@ -529,7 +529,7 @@ function speakText(text, callback) {
     
     utterance.onend = function() {
         interviewState.isSpeaking = false;
-        setStatus('Click "Start Listening" to speak your answer.', '');
+        setStatus('Click "Start speaking" to speak your answer.', '');
         if (callback) callback();
     };
     
@@ -793,9 +793,9 @@ function showQuestion(index) {
     
     speakText(question, function() {
         console.log('Question spoken!');
-        setStatus('Click "Start Listening" to speak your answer.', '');
+        setStatus('Click "Start speaking" to speak your answer.', '');
         if (answerDisplay) answerDisplay.style.display = 'block';
-        if (answerText) answerText.textContent = 'Press "Start Listening" and speak your answer clearly.';
+        if (answerText) answerText.textContent = 'Press "Start speaking" and speak your answer clearly.';
         console.log('Answer display shown');
     });
 }
