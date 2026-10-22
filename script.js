@@ -1437,7 +1437,6 @@ async function exportToPDF() {
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="value">${avgFocus}%</div><div class="label">Average focus</div></div>
     <div class="stat"><div class="value">${answered}<span style="color:#C3C9D2">/${total}</span></div><div class="label">Questions answered</div></div>
   </div>
 
