@@ -191,43 +191,37 @@ class FaceDetector {
     }
 
     drawFocusIndicator() {
-        if (!this.ctx) return;
+    if (!this.ctx) return;
 
-        const width = this.canvasElement.width;
-        const height = this.canvasElement.height;
+    const width = this.canvasElement.width;
 
-        // 🔥 Smaller indicator on mobile
-        const boxWidth = IS_MOBILE ? 130 : 200;
-        const boxHeight = IS_MOBILE ? 30 : 40;
-        const fontSize = IS_MOBILE ? '12px' : '16px';
+    // Color indicator based on focus score
+    let color = '#48bb78';        // green — good focus
+    if (this.focusScore < 70) color = '#f6ad55';   // orange — drifting
+    if (this.focusScore < 50) color = '#fc8181';   // red — not focused
 
-        // Focus score background
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        this.ctx.fillRect(width - boxWidth - 10, 10, boxWidth, boxHeight);
-        
-        // Focus text
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = `${fontSize} Arial`;
-        this.ctx.fillText(
-            `Focus: ${this.focusScore}%`, 
-            width - boxWidth - 5, 
-            boxHeight - 5
-        );
+    // Draw the colored dot in the top-right corner (no text, no box)
+    const dotRadius = IS_MOBILE ? 8 : 10;
+    const dotX = width - 25;
+    const dotY = 25;
 
-        // Color indicator
-        let color = '#48bb78';
-        if (this.focusScore < 70) color = '#f6ad55';
-        if (this.focusScore < 50) color = '#fc8181';
+    // Outer glow ring (subtle)
+    this.ctx.beginPath();
+    this.ctx.arc(dotX, dotY, dotRadius + 3, 0, 2 * Math.PI);
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    this.ctx.fill();
 
-        // Colored circle
-        this.ctx.beginPath();
-        this.ctx.arc(width - 25, 25, IS_MOBILE ? 8 : 10, 0, 2 * Math.PI);
-        this.ctx.fillStyle = color;
-        this.ctx.fill();
-        this.ctx.strokeStyle = 'white';
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
-    }
+    // Solid dot
+    this.ctx.beginPath();
+    this.ctx.arc(dotX, dotY, dotRadius, 0, 2 * Math.PI);
+    this.ctx.fillStyle = color;
+    this.ctx.fill();
+
+    // White outline for contrast
+    this.ctx.strokeStyle = 'white';
+    this.ctx.lineWidth = 2;
+    this.ctx.stroke();
+}
 
     // ============================================
     // FOCUS SCORE & NUDGE
