@@ -1262,15 +1262,15 @@ function promptForPDFDetails() {
         const confirmBtn = document.getElementById('pdfConfirmBtn');
 
         if (!modal) {
-            // If modal not present, proceed without details
             resolve({ name: '', surname: '', position: '' });
             return;
         }
 
-        // Reset fields
         nameInput.value = '';
         surnameInput.value = '';
         positionInput.value = '';
+        nameInput.style.borderColor = '';
+        surnameInput.style.borderColor = '';
 
         modal.classList.add('active');
         setTimeout(() => nameInput.focus(), 50);
@@ -1289,7 +1289,6 @@ function promptForPDFDetails() {
             const position = positionInput.value.trim();
 
             if (!name || !surname) {
-                // Simple inline validation
                 if (!name) nameInput.style.borderColor = 'var(--danger)';
                 if (!surname) surnameInput.style.borderColor = 'var(--danger)';
                 return;
@@ -1301,7 +1300,7 @@ function promptForPDFDetails() {
 
         const onCancel = () => {
             cleanup();
-            resolve(null); // null = user cancelled
+            resolve(null);
         };
 
         const onBackdrop = (e) => {
@@ -1318,6 +1317,387 @@ function promptForPDFDetails() {
         modal.addEventListener('click', onBackdrop);
         document.addEventListener('keydown', onKey);
     });
+}
+
+// ============================================
+// PDF PAGE BUILDER — no mid-card cuts
+// ============================================
+
+async function exportToPDF() {
+    const details = await promptForPDFDetails();
+    if (!details) return;
+
+    showLoading('Generating PDF...', 'This takes about 3-5 seconds');
+    if (exportPdfBtn) {
+        exportPdfBtn.textContent = 'Generating PDF...';
+        exportPdfBtn.disabled = true;
+    }
+
+    try {
+        // ---------- Compute summary stats ----------
+        let totalFocus = 0, focusCount = 0;
+        (interviewState.focusData || []).forEach(d => {
+            if (d?.focusScores?.length) {
+                totalFocus += d.focusScores.reduce((a, b) => a + b, 0) / d.focusScores.length;
+                focusCount++;
+            }
+        });
+
+        const avgFocus = focusCount ? Math.round(totalFocus / focusCount) : 0;
+        const answered = interviewState.answers.filter(a => a && a.trim()).length;
+        const total = interviewState.questions.length;
+        const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+        const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+        const candidateName = `${details.name} ${details.surname}`.trim();
+        const candidatePosition = details.position || '';
+
+        // ---------- Load logo ----------
+        let logoHTML = '';
+        try {
+            const logoResponse = await fetch('browserLogo.png');
+            if (logoResponse.ok) {
+                const blob = await logoResponse.blob();
+                const reader = new FileReader();
+                const logoData = await new Promise((resolve) => {
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+                logoHTML = `<img src="${logoData}" alt="Interview Coach" style="height:32px; width:auto; display:block;">`;
+            }
+        } catch (e) {
+            console.warn('Logo not loaded:', e);
+        }
+
+        // ---------- Shared CSS (used inside every page) ----------
+        const reportCSS = `
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',Arial,sans-serif; color:#0A1628; background:#fff; -webkit-font-smoothing:antialiased; }
+
+  .page { width: 750px; padding: 40px 48px; background:#fff; }
+  .page-content { display:block; }
+
+  .header { display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:16px; border-bottom:2px solid #0A1628; margin-bottom:20px; }
+  .header-left { display:flex; align-items:center; gap:12px; }
+  .header-left .name { font-size:18px; font-weight:600; letter-spacing:-.02em; }
+  .header-kicker { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:#8A94A3; }
+  .header-meta { text-align:right; font-size:10px; color:#8A94A3; line-height:1.6; }
+
+  .candidate-block { margin-bottom:24px; padding:14px 18px; background:#F7F8FA; border-left:3px solid #0A1628; border-radius:0 4px 4px 0; }
+  .candidate-block .candidate-name { font-size:16px; font-weight:600; color:#0A1628; letter-spacing:-.01em; }
+  .candidate-block .candidate-position { font-size:12px; color:#5A6675; margin-top:3px; }
+  .candidate-block .candidate-kicker { font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:#8A94A3; margin-bottom:4px; }
+
+  .stats { display:flex; gap:48px; padding:16px 0 20px; border-bottom:1px solid #E6E8EC; margin-bottom:24px; }
+  .stat .value { font-size:26px; font-weight:300; letter-spacing:-.03em; line-height:1; }
+  .stat .label { margin-top:6px; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#8A94A3; }
+
+  .section-title { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:#8A94A3; margin:20px 0 14px; }
+
+  .q-item { padding:0 0 14px 16px; margin-bottom:14px; border-left:1px solid #E6E8EC; border-bottom:1px solid #F1F2F5; }
+  .q-item .num { font-size:9px; letter-spacing:.12em; color:#B0B7C2; }
+  .q-item .question { font-size:13px; font-weight:600; line-height:1.5; margin:3px 0 6px; }
+  .q-item .answer { font-size:12px; line-height:1.7; color:#445061; }
+  .q-item .answer.empty { color:#A3ABB8; font-style:italic; }
+
+  .focus-block { padding:14px 18px; background:#F7F8FA; border-radius:4px; margin-bottom:16px; display:flex; align-items:center; gap:20px; }
+  .focus-block .focus-value { font-size:22px; font-weight:300; letter-spacing:-.03em; color:#0A1628; }
+  .focus-block .focus-label { font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:#8A94A3; margin-top:2px; }
+  .focus-block .focus-bar { flex:1; height:4px; background:#E6E8EC; border-radius:2px; overflow:hidden; }
+  .focus-block .focus-bar-fill { height:100%; border-radius:2px; }
+
+  .fb-item { padding:0 0 10px 16px; margin-bottom:10px; border-left:1px solid #E6E8EC; }
+  .fb-item .label { font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#8A94A3; margin-bottom:4px; }
+  .fb-item p, .fb-item li { font-size:12px; line-height:1.7; color:#445061; }
+  .fb-item ul { padding-left:16px; }
+  .score { font-size:36px; font-weight:300; letter-spacing:-.03em; margin-bottom:16px; }
+</style>`;
+
+        // ---------- Helper to build a question card's HTML ----------
+        const buildQuestionCard = (question, index) => {
+            const answer = interviewState.answers[index] || '';
+            const has = !!answer.trim();
+            return `
+  <div class="q-item">
+    <div class="num">Q${String(index + 1).padStart(2, '0')}</div>
+    <div class="question">${esc(question)}</div>
+    <div class="answer${has ? '' : ' empty'}">${has ? esc(answer) : 'No answer provided'}</div>
+  </div>`;
+        };
+
+        // ---------- Helper to build a feedback card's HTML ----------
+        const buildFeedbackCard = (title, body) => {
+            return `<div class="fb-item"><div class="label">${esc(title)}</div>${body}</div>`;
+        };
+
+        // ============================================
+        // 1. PREPARE ALL CONTENT BLOCKS
+        // Each block is an object: { html, keepWithNext?, isSectionTitle? }
+        // ============================================
+
+        const blocks = [];
+
+        // Section title: Questions & Answers
+        blocks.push({
+            html: `<div class="section-title">Questions &amp; Answers</div>`,
+            isSectionTitle: true,
+            keepWithNext: true   // Don't leave a lone section title at the bottom of a page
+        });
+
+        // All question cards
+        interviewState.questions.forEach((question, i) => {
+            blocks.push({ html: buildQuestionCard(question, i) });
+        });
+
+        // AI Feedback section — only if feedback exists
+        if (feedbackContent?.innerHTML) {
+            const scoreEl = feedbackContent.querySelector('.feedback-score');
+            const sections = feedbackContent.querySelectorAll('.feedback-section');
+
+            if (scoreEl || sections.length) {
+                // Section title: AI Feedback
+                blocks.push({
+                    html: `<div class="section-title">AI Feedback</div>`,
+                    isSectionTitle: true,
+                    keepWithNext: true
+                });
+
+                // Score
+                if (scoreEl) {
+                    const scoreText = esc(scoreEl.textContent.trim());
+                    blocks.push({ html: `<div class="score">${scoreText}</div>` });
+                }
+
+                // Focus block (moved here from per-question)
+                if (avgFocus > 0) {
+                    let focusColor = '#48bb78';
+                    if (avgFocus < 70) focusColor = '#f6ad55';
+                    if (avgFocus < 50) focusColor = '#fc8181';
+                    blocks.push({
+                        html: `
+  <div class="focus-block">
+    <div>
+      <div class="focus-value">${avgFocus}%</div>
+      <div class="focus-label">Average Eye Focus</div>
+    </div>
+    <div class="focus-bar">
+      <div class="focus-bar-fill" style="width:${avgFocus}%; background:${focusColor};"></div>
+    </div>
+  </div>`
+                    });
+                }
+
+                // Feedback sections
+                sections.forEach(section => {
+                    const title = section.querySelector('h4');
+                    const content = section.querySelector('p, ul');
+                    if (!title || !content) return;
+                    const titleText = title.textContent.toLowerCase();
+                    if (titleText.includes('gaze') || titleText.includes('look away') || titleText.includes('eye contact')) return;
+
+                    const body = content.tagName === 'UL'
+                        ? `<ul>${[...content.querySelectorAll('li')].map(li => `<li>${esc(li.textContent)}</li>`).join('')}</ul>`
+                        : `<p>${esc(content.textContent)}</p>`;
+
+                    blocks.push({ html: buildFeedbackCard(title.textContent, body) });
+                });
+            }
+        }
+
+        // ============================================
+        // 2. MEASURE BLOCK HEIGHTS (using an off-screen container)
+        // ============================================
+
+        const measureContainer = document.createElement('div');
+        measureContainer.innerHTML = reportCSS + `<div class="page"><div class="page-content" id="measureTarget"></div></div>`;
+        Object.assign(measureContainer.style, {
+            position: 'fixed',
+            left: '-10000px',
+            top: '0',
+            width: '750px',
+            background: '#fff'
+        });
+        document.body.appendChild(measureContainer);
+
+        const measureTarget = measureContainer.querySelector('#measureTarget');
+
+        // Measure each block's height
+        blocks.forEach(block => {
+            measureTarget.innerHTML = block.html;
+            block.height = measureTarget.firstElementChild
+                ? measureTarget.firstElementChild.getBoundingClientRect().height
+                : 0;
+            // Add a small buffer to each block height (for margin)
+            block.height += 4;
+        });
+
+        document.body.removeChild(measureContainer);
+
+        // ============================================
+        // 3. PACK BLOCKS INTO PAGES
+        // ============================================
+
+        // Page 1 has the header + candidate block + stats — so it has LESS room for content
+        // Page 2+ has no header — so it has MORE room
+        // We approximate the fixed blocks' heights
+        const PAGE_HEIGHT_MM = 297;               // A4 height
+        const MARGIN_TOP_MM = 14;
+        const MARGIN_BOTTOM_MM = 14;
+        const CONTENT_HEIGHT_MM = PAGE_HEIGHT_MM - MARGIN_TOP_MM - MARGIN_BOTTOM_MM;
+        const MM_TO_PX = 3.78;                    // 1mm ≈ 3.78px at 96 DPI
+        const CONTENT_HEIGHT_PX = CONTENT_HEIGHT_MM * MM_TO_PX;
+
+        // Approximate heights (in px) of the fixed blocks on page 1
+        const HEADER_HEIGHT_PX = 80;              // header + border
+        const CANDIDATE_HEIGHT_PX = 90;           // candidate block
+        const STATS_HEIGHT_PX = 70;               // stats row
+        const FIXED_FIRST_PAGE_PX = HEADER_HEIGHT_PX + CANDIDATE_HEIGHT_PX + STATS_HEIGHT_PX;
+
+        const pages = [];
+        let currentPageBlocks = [];
+        let currentHeight = FIXED_FIRST_PAGE_PX;
+        let isFirstPage = true;
+
+        for (let i = 0; i < blocks.length; i++) {
+            const block = blocks[i];
+            const nextBlock = blocks[i + 1];
+
+            // How much space does this block need?
+            let neededHeight = block.height;
+
+            // If this is a section title with keepWithNext, add the next block's height too
+            if (block.keepWithNext && nextBlock) {
+                neededHeight += nextBlock.height;
+            }
+
+            // Does it fit on the current page?
+            if (currentHeight + neededHeight > CONTENT_HEIGHT_PX && currentPageBlocks.length > 0) {
+                // Start a new page
+                pages.push({
+                    blocks: currentPageBlocks,
+                    isFirstPage: isFirstPage
+                });
+                currentPageBlocks = [];
+                currentHeight = 0;
+                isFirstPage = false;
+            }
+
+            currentPageBlocks.push(block);
+            currentHeight += block.height;
+        }
+
+        // Push the last page
+        if (currentPageBlocks.length > 0) {
+            pages.push({ blocks: currentPageBlocks, isFirstPage });
+        }
+
+        // ============================================
+        // 4. RENDER EACH PAGE AND ADD TO PDF
+        // ============================================
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const marginLeft = 12;
+        const marginRight = 12;
+        const contentWidth = pageWidth - marginLeft - marginRight;
+
+        for (let p = 0; p < pages.length; p++) {
+            const page = pages[p];
+            const blockHtml = page.blocks.map(b => b.html).join('\n');
+
+            // Build the full page HTML
+            let pageHtml = reportCSS + `<div class="page">`;
+
+            if (page.isFirstPage) {
+                pageHtml += `
+  <div class="header">
+    <div class="header-left">
+      ${logoHTML}
+      <div>
+        <div class="header-kicker">Interview Report</div>
+        <div class="name">InterviewCoach</div>
+      </div>
+    </div>
+    <div class="header-meta">${dateStr}<br>${answered} of ${total} answered</div>
+  </div>
+
+  <div class="candidate-block">
+    <div class="candidate-kicker">Candidate</div>
+    <div class="candidate-name">${esc(candidateName)}</div>
+    ${candidatePosition ? `<div class="candidate-position">Applying for: ${esc(candidatePosition)}</div>` : ''}
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="value">${answered}<span style="color:#C3C9D2">/${total}</span></div><div class="label">Questions answered</div></div>
+  </div>
+`;
+            }
+
+            pageHtml += blockHtml + `</div>`;
+
+            // Render this page to canvas
+            const container = document.createElement('div');
+            container.innerHTML = pageHtml;
+            Object.assign(container.style, {
+                position: 'fixed',
+                left: '-10000px',
+                top: '0',
+                width: '750px',
+                background: '#fff'
+            });
+            document.body.appendChild(container);
+            await new Promise(r => setTimeout(r, 100));
+
+            const canvas = await html2canvas(container, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#FFFFFF',
+                windowWidth: 750
+            });
+            document.body.removeChild(container);
+
+            // Add to PDF
+            if (p > 0) pdf.addPage();
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.92);
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const imgHeightMm = (imgHeight / imgWidth) * contentWidth;
+
+            // If page is taller than the printable area, scale it down slightly
+            const finalHeight = Math.min(imgHeightMm, pageHeight - 28);
+            const finalWidth = (finalHeight / imgHeightMm) * contentWidth;
+
+            pdf.addImage(imgData, 'JPEG', marginLeft, 14, finalWidth, finalHeight);
+
+            // Footer
+            const footerY = pageHeight - 10;
+            pdf.setFontSize(8);
+            pdf.setTextColor('#A3ABB8');
+            pdf.text(`© ${new Date().getFullYear()} Interview Coach`, marginLeft, footerY);
+
+            const rightText = `Created by Khetha Ngidi  •  Page ${p + 1} of ${pages.length}`;
+            const rightTextWidth = pdf.getStringUnitWidth(rightText) * 8 / pdf.internal.scaleFactor;
+            pdf.text(rightText, pageWidth - marginRight - rightTextWidth, footerY);
+        }
+
+        hideLoading();
+        pdf.save(`interview-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+
+    } catch (error) {
+        console.error('PDF export error:', error);
+        hideLoading();
+        alert('Failed to generate PDF. Error: ' + error.message);
+    } finally {
+        if (exportPdfBtn) {
+            exportPdfBtn.textContent = 'Export as PDF';
+            exportPdfBtn.disabled = false;
+        }
+    }
 }
 
 async function exportToPDF() {
